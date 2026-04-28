@@ -1,0 +1,15 @@
+# Ignore node_modules
+node_modules/
+# Ignore compiled JavaScript and source maps
+dist/
+*.js
+*.js.map
+# Ignore TypeScript build artifacts
+*.d.ts
+# Ignore environment files
+env
+# Ignore OS-specific and editor-specific files
+DS_Store
+Thumbs.db
+idea/
+vscode/
