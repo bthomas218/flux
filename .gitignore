@@ -7,7 +7,7 @@ dist/
 # Ignore TypeScript build artifacts
 *.d.ts
 # Ignore environment files
-env
+.env
 # Ignore OS-specific and editor-specific files
 DS_Store
 Thumbs.db
