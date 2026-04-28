@@ -2,7 +2,17 @@ import Fastify from "fastify";
 import { cfg } from "./cfg.js";
 
 const app = Fastify({
-  logger: true,
+  logger:
+    cfg.NODE_ENV === "development"
+      ? {
+          level: "debug",
+          transport: {
+            target: "pino-pretty",
+          },
+        }
+      : {
+          level: "info",
+        },
 });
 
 app.get("/health", async (request, reply) => {
