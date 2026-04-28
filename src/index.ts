@@ -1,6 +1,11 @@
 import Fastify from "fastify";
 import { cfg } from "./cfg.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
+import {
+  serializerCompiler,
+  validatorCompiler,
+  type ZodTypeProvider,
+} from "fastify-type-provider-zod";
 
 const app = Fastify({
   logger:
@@ -14,7 +19,10 @@ const app = Fastify({
       : {
           level: "info",
         },
-});
+})
+  .setValidatorCompiler(validatorCompiler)
+  .setSerializerCompiler(serializerCompiler)
+  .withTypeProvider<ZodTypeProvider>();
 
 app.get("/health", async (request, reply) => {
   return { status: "OK" };
