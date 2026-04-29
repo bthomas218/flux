@@ -8,6 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   HOSTNAME: z.string().min(1).default("localhost"),
   DATABASE_URL: z.url(),
+  ENCRYPTION_KEY: z.hex(),
 });
 
 const parsed = envSchema.safeParse(process.env);
