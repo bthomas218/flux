@@ -2,17 +2,22 @@ import crypto, { createCipheriv } from "node:crypto";
 import { hash, compare } from "bcrypt-ts";
 
 const ALGORITHM = "aes-256-gcm";
+const SALT_ROUNDS = 10;
 
 export function generateAPIKey() {
-  return `sk_${crypto.randomBytes(32).toString("hex")}`;
+  return `sk_${generateToken()}`;
 }
 
 export function generateSecretKey() {
-  return `whsec_${crypto.randomBytes(32).toString("hex")}`;
+  return `whsec_${generateToken()}`;
 }
 
-export async function hashKey(key: string) {
-  return await hash(key, 10);
+export function generateToken(size = 32) {
+  return crypto.randomBytes(size).toString("hex");
+}
+
+export async function toHash(data: string) {
+  return await hash(data, SALT_ROUNDS);
 }
 
 export async function encrypt(secretKey: string, iv: string, data: string) {
@@ -57,6 +62,6 @@ export async function decrypt(
   return decryptedData.toString("utf8");
 }
 
-export async function verifyKey(key: string, hash: string) {
-  return await compare(key, hash);
+export async function verifyHash(candidateHash: string, hash: string) {
+  return await compare(candidateHash, hash);
 }

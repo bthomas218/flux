@@ -1,7 +1,12 @@
 import type { FastifyInstance } from "fastify";
-import { registerUser } from "./authController.js";
+import { registerUser, requestMagicLink } from "./authController.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { regiserResponseSchema, registerBodySchema } from "./authSchemas.js";
+import {
+  registerResponseSchema,
+  registerBodySchema,
+  magicLinkBodySchema,
+  magicLinkResponseSchema,
+} from "./authSchemas.js";
 
 export async function authRoutes(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
@@ -10,10 +15,23 @@ export async function authRoutes(app: FastifyInstance) {
       schema: {
         body: registerBodySchema,
         response: {
-          200: regiserResponseSchema,
+          200: registerResponseSchema,
         },
       },
     },
     registerUser,
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().post(
+    "/magic-link",
+    {
+      schema: {
+        body: magicLinkBodySchema,
+        response: {
+          200: magicLinkResponseSchema,
+        },
+      },
+    },
+    requestMagicLink,
   );
 }
