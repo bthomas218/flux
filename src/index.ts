@@ -6,7 +6,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { ZodError } from "zod";
+import { prisma } from "./lib/prisma.js";
 
 const app = Fastify({
   logger:
@@ -45,7 +45,11 @@ app.setErrorHandler(async (error: FastifyError, request, reply) => {
 });
 
 app.get("/health", async (request, reply) => {
-  return { status: "OK" };
+  const pgConnectionCheck = await prisma.$queryRaw`SELECT CURRENT_TIME;`;
+  return {
+    status: "OK",
+    pgConnectionCheck,
+  };
 });
 app.register(authRoutes, { prefix: "auth" });
 

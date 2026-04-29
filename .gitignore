@@ -13,3 +13,8 @@ DS_Store
 Thumbs.db
 idea/
 vscode/
+# Ignore prisma generations
+generated/
+
+
+/generated/prisma

@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
-import { generateAPIKey, generateSecretKey } from "./authService.js";
 import type { RegisterBody, RegisterReply } from "./authSchemas.js";
+import { createUser } from "./authService.js";
 
 export const registerUser = async (
   request: FastifyRequest<{
@@ -9,5 +9,6 @@ export const registerUser = async (
   reply: FastifyReply<{ Reply: RegisterReply }>,
 ) => {
   const { email } = request.body;
-  reply.send({ apiKey: generateAPIKey(), secretKey: generateSecretKey() });
+  const { apiKey, webhookSecret: secretKey } = await createUser(email);
+  reply.send({ apiKey, secretKey });
 };
