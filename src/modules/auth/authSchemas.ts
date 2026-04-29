@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const registerBodySchema = z.object({
   email: z.email(),
+  keyName: z.string().optional(),
 });
 
 export const regiserResponseSchema = z.object({

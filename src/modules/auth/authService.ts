@@ -1,17 +1,33 @@
-import { generateAPIKey, generateSecretKey } from "../../lib/crypto.js";
+import {
+  generateAPIKey,
+  generateSecretKey,
+  hashKey,
+} from "../../lib/crypto.js";
 import { prisma } from "../../lib/prisma.js";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 import { ConflictError } from "../../errors.js";
 
-export async function createUser(email: string) {
+export async function createUser(email: string, keyName: string | undefined) {
   try {
-    return await prisma.user.create({
+    const apiKey = generateAPIKey();
+    const secretKey = generateSecretKey();
+
+    await prisma.user.create({
       data: {
         email: email,
-        apiKey: generateAPIKey(),
-        webhookSecret: generateSecretKey(),
+        webhookSecret: await hashKey(secretKey),
+        apiKeys: {
+          create: {
+            apiKeyHash: await hashKey(apiKey),
+            name: keyName ?? `sk_${email}`,
+            revokedAt: null,
+            lastUsedAt: null,
+          },
+        },
       },
     });
+
+    return { apiKey, secretKey };
   } catch (err) {
     if (err instanceof PrismaClientKnownRequestError) {
       if (err.code === "P2002") {

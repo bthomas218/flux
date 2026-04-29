@@ -13,9 +13,26 @@ datasource db {
 }
 
 model User {
-  id String @id @default(uuid(7)) @db.Uuid
+  id String @id @default(cuid())
   email String @unique
-  apiKey String @unique
+  
+  apiKeys ApiKey[]
   webhookSecret   String
+
   createdAt       DateTime @default(now())
+}
+
+model ApiKey {
+  id String @id @default(cuid())
+
+  userId String
+  user User @relation(fields: [userId], references: [id])
+
+  apiKeyHash String @unique
+  name String
+  prefix String @default("sk_")
+
+  lastUsedAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
 }

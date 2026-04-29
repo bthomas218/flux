@@ -8,7 +8,6 @@ export const registerUser = async (
   }>,
   reply: FastifyReply<{ Reply: RegisterReply }>,
 ) => {
-  const { email } = request.body;
-  const { apiKey, webhookSecret: secretKey } = await createUser(email);
-  reply.send({ apiKey, secretKey });
+  const { email, keyName } = request.body;
+  reply.send(await createUser(email, keyName));
 };
