@@ -9,6 +9,7 @@ const envSchema = z.object({
   HOSTNAME: z.string().min(1).default("localhost"),
   DATABASE_URL: z.url(),
   ENCRYPTION_KEY: z.hex(),
+  TOKEN_HASH_SECRET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

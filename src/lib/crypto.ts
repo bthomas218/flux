@@ -20,6 +20,10 @@ export async function toHash(data: string) {
   return await hash(data, SALT_ROUNDS);
 }
 
+export function toDeterministicHash(data: string, secret: string) {
+  return crypto.createHmac("sha256", secret).update(data).digest("hex");
+}
+
 export async function encrypt(secretKey: string, iv: string, data: string) {
   const cipher = crypto.createCipheriv(
     ALGORITHM,

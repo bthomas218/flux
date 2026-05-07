@@ -1,11 +1,16 @@
 import type { FastifyInstance } from "fastify";
-import { registerUser, requestMagicLink } from "./authController.js";
+import {
+  handleCallback,
+  registerUser,
+  requestMagicLink,
+} from "./authController.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   registerResponseSchema,
   registerBodySchema,
   magicLinkBodySchema,
   magicLinkResponseSchema,
+  callbackQuerySchema,
 } from "./authSchemas.js";
 
 export async function authRoutes(app: FastifyInstance) {
@@ -33,5 +38,15 @@ export async function authRoutes(app: FastifyInstance) {
       },
     },
     requestMagicLink,
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/callback",
+    {
+      schema: {
+        querystring: callbackQuerySchema,
+      },
+    },
+    handleCallback,
   );
 }

@@ -6,6 +6,22 @@ describe("Encryption and Decryption", () => {
   const secretKey = randomBytes(32).toString("hex"); // 32 bytes for aes-256
   const iv = randomBytes(12).toString("hex"); // 12 bytes IV
 
+  describe("toDeterministicHash", () => {
+    it("should return the same hash for the same data and secret", () => {
+      const firstHash = crypto.toDeterministicHash("token", "secret");
+      const secondHash = crypto.toDeterministicHash("token", "secret");
+
+      expect(secondHash).toBe(firstHash);
+    });
+
+    it("should return a different hash for a different secret", () => {
+      const firstHash = crypto.toDeterministicHash("token", "secret");
+      const secondHash = crypto.toDeterministicHash("token", "other-secret");
+
+      expect(secondHash).not.toBe(firstHash);
+    });
+  });
+
   describe("encrypt", () => {
     it("should encrypt data successfully", async () => {
       const data = "Hello, World!";
