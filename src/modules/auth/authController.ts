@@ -1,26 +1,11 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyRequest, FastifyReply, FastifyInstance } from "fastify";
 import type {
   CallbackQuery,
+  CallbackReply,
   MagicLinkBody,
   MagicLinkReply,
-  RegisterBody,
-  RegisterReply,
 } from "./authSchemas.js";
-import {
-  createUser,
-  sendMagicLink,
-  verifyMagicLinkToken,
-} from "./authService.js";
-
-export const registerUser = async (
-  request: FastifyRequest<{
-    Body: RegisterBody;
-  }>,
-  reply: FastifyReply<{ Reply: RegisterReply }>,
-) => {
-  const { email, keyName } = request.body;
-  reply.send(await createUser(email, keyName));
-};
+import { sendMagicLink, verifyMagicLinkToken } from "./authService.js";
 
 export const requestMagicLink = async (
   request: FastifyRequest<{
@@ -32,14 +17,16 @@ export const requestMagicLink = async (
   reply.send(await sendMagicLink(email));
 };
 
-export const handleCallback = async (
-  request: FastifyRequest<{
-    Querystring: CallbackQuery;
-  }>,
-  reply: FastifyReply,
-) => {
-  const { token } = request.query;
-  const user = await verifyMagicLinkToken(token); // will throw if invalid or expired
-
-  reply.send({ user }); // TODO: send JWT after verifying token
-};
+export const handleCallback =
+  (app: FastifyInstance) =>
+  async (
+    request: FastifyRequest<{
+      Querystring: CallbackQuery;
+    }>,
+    reply: FastifyReply<{ Reply: CallbackReply }>,
+  ) => {
+    const { token } = request.query;
+    const user = await verifyMagicLinkToken(token); // will throw if invalid or expired
+    const jwt = app.jwt.sign({ userId: user.id, email: user.email });
+    reply.send({ jwt });
+  };

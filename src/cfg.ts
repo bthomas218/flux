@@ -10,6 +10,7 @@ const envSchema = z.object({
   DATABASE_URL: z.url(),
   ENCRYPTION_KEY: z.hex(),
   TOKEN_HASH_SECRET: z.string().min(1),
+  JWT_SECRET: z.string().min(1),
 });
 
 const parsed = envSchema.safeParse(process.env);

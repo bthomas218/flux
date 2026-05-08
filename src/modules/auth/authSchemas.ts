@@ -1,14 +1,4 @@
-import { success, z } from "zod";
-
-export const registerBodySchema = z.object({
-  email: z.email(),
-  keyName: z.string().optional(),
-});
-
-export const registerResponseSchema = z.object({
-  apiKey: z.string(),
-  secretKey: z.string(),
-});
+import { z } from "zod";
 
 export const magicLinkBodySchema = z.object({
   email: z.email(),
@@ -25,11 +15,10 @@ export const callbackQuerySchema = z.object({
 });
 
 export const callbackResponseSchema = z.object({
-  success: z.boolean(),
+  jwt: z.string(),
 });
 
-export type RegisterBody = z.infer<typeof registerBodySchema>;
-export type RegisterReply = z.infer<typeof registerResponseSchema>;
 export type MagicLinkBody = z.infer<typeof magicLinkBodySchema>;
 export type MagicLinkReply = z.infer<typeof magicLinkResponseSchema>;
 export type CallbackQuery = z.infer<typeof callbackQuerySchema>;
+export type CallbackReply = z.infer<typeof callbackResponseSchema>;

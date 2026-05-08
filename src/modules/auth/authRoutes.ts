@@ -1,31 +1,19 @@
 import type { FastifyInstance } from "fastify";
-import {
-  handleCallback,
-  registerUser,
-  requestMagicLink,
-} from "./authController.js";
+import { handleCallback, requestMagicLink } from "./authController.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
-  registerResponseSchema,
-  registerBodySchema,
   magicLinkBodySchema,
   magicLinkResponseSchema,
   callbackQuerySchema,
+  callbackResponseSchema,
 } from "./authSchemas.js";
+import fastifyJwt from "@fastify/jwt";
+import { cfg } from "../../cfg.js";
 
 export async function authRoutes(app: FastifyInstance) {
-  app.withTypeProvider<ZodTypeProvider>().post(
-    "/register",
-    {
-      schema: {
-        body: registerBodySchema,
-        response: {
-          200: registerResponseSchema,
-        },
-      },
-    },
-    registerUser,
-  );
+  app.register(fastifyJwt, {
+    secret: cfg.JWT_SECRET,
+  });
 
   app.withTypeProvider<ZodTypeProvider>().post(
     "/magic-link",
@@ -45,8 +33,11 @@ export async function authRoutes(app: FastifyInstance) {
     {
       schema: {
         querystring: callbackQuerySchema,
+        response: {
+          200: callbackResponseSchema,
+        },
       },
     },
-    handleCallback,
+    handleCallback(app),
   );
 }
