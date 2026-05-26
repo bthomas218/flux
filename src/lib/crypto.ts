@@ -66,6 +66,6 @@ export async function decrypt(
   return decryptedData.toString("utf8");
 }
 
-export async function verifyHash(candidateHash: string, hash: string) {
-  return await compare(candidateHash, hash);
+export async function verifyHash(plaintext: string, hash: string) {
+  return await compare(plaintext, hash);
 }

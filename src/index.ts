@@ -1,5 +1,6 @@
 import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./cfg.js";
+import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
 import {
   serializerCompiler,
@@ -34,6 +35,17 @@ app.setErrorHandler(async (error: FastifyError, request, reply) => {
     });
   }
 
+  if (
+    error.code === "FST_JWT_AUTHORIZATION_TOKEN_INVALID" ||
+    error.code === "FAST_JWT_INVALID_SIGNATURE" ||
+    error.message?.includes("signature")
+  ) {
+    return reply.status(401).send({
+      error: "UnauthorizedError",
+      message: "Invalid or expired token",
+    });
+  }
+
   const statusCode = error.statusCode || 500;
 
   if (statusCode === 500) app.log.error(error);
@@ -52,6 +64,7 @@ app.get("/health", async (request, reply) => {
   };
 });
 app.register(authRoutes, { prefix: "auth" });
+app.register(apiKeyRoutes);
 
 async function main() {
   try {

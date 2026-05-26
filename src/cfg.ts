@@ -1,4 +1,4 @@
-import { treeifyError, z } from "zod";
+import { z } from "zod";
 import "dotenv/config";
 
 const envSchema = z.object({
@@ -8,7 +8,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   HOSTNAME: z.string().min(1).default("localhost"),
   DATABASE_URL: z.url(),
-  ENCRYPTION_KEY: z.hex(),
+  ENCRYPTION_KEY: z.hex().length(64),
   TOKEN_HASH_SECRET: z.string().min(1),
   JWT_SECRET: z.string().min(1),
 });
