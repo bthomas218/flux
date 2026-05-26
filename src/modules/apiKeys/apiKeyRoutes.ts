@@ -50,7 +50,7 @@ export async function apiKeyRoutes(app: FastifyInstance) {
   );
 
   app.withTypeProvider<ZodTypeProvider>().delete(
-    "/api-key/:id",
+    "/api-keys/:id",
     {
       schema: {
         params: deleteApiKeyParamsSchema,
