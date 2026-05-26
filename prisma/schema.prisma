@@ -17,6 +17,8 @@ model User {
   email String @unique
   
   apiKeys ApiKey[]
+  jobs Job[]
+  files File[]
   webhookSecret   String
 
   createdAt       DateTime @default(now())
@@ -46,4 +48,52 @@ model MagicLinkToken {
 
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Job {
+  id String @id @default(cuid())
+  userId String
+  fileId String
+  user User @relation(fields: [userId], references: [id])
+  file File @relation(fields: [fileId], references: [id])
+
+  status JobStatus @default(PENDING)
+  type JobType
+  data Json
+  result Json?
+  error String?
+
+  startedAt DateTime?
+  finishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model File {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+  jobs Job[]
+
+  storageKey String @unique
+  filename String
+  mimeType String
+  size Int
+  url String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum JobStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum JobType {
+  RESIZE_IMAGE
+  RESIZE_VIDEO
+  GENERATE_ALT_TEXT
 }
