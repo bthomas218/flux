@@ -11,7 +11,7 @@ export async function createApiKey(userId: string, name: string) {
       userId,
       name,
       apiKeyHash,
-      prefix: apiKey.slice(0, 8),
+      prefix: apiKey.slice(0, 16),
     },
     select: {
       id: true,
