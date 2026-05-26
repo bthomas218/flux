@@ -2,6 +2,7 @@ import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./cfg.js";
 import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
+import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -65,6 +66,7 @@ app.get("/health", async (request, reply) => {
 });
 app.register(authRoutes, { prefix: "auth" });
 app.register(apiKeyRoutes);
+app.register(jobsRoutes);
 
 async function main() {
   try {
