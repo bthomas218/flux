@@ -9,10 +9,11 @@ import type {
   GetJobReply,
   ListJobsReply,
 } from "./jobsSchemas.js";
+import { mediaQueue } from "../../queues/mediaQueue.js";
 
 type JobData = CreateJobBody["data"];
 
-type JobRecord = {
+export type JobRecord = {
   id: string;
   type: JobType;
   status: JobStatus;
@@ -62,6 +63,13 @@ export async function createJob(
         data: true,
       },
     });
+  });
+
+  await mediaQueue.add(job.id, {
+    type: job.type,
+    status: job.status,
+    data: job.data as JobData,
+    id: job.id,
   });
 
   return toJobResponse(job);
