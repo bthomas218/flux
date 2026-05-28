@@ -20,9 +20,14 @@ export const uploadFileHandler = async (
   const userId = request.apiKey!.userId;
   const { file, filename, mimetype } = data;
 
-  const url = await uploadFileService(userId, file, filename, mimetype);
+  const uploadedFile = await uploadFileService(
+    userId,
+    file,
+    filename,
+    mimetype,
+  );
 
-  reply.send({ message: "File upload successful", url });
+  reply.send(uploadedFile);
 };
 
 // TODO: Implement file retrieval logic
