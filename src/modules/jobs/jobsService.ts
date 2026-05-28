@@ -11,10 +11,9 @@ import type {
 } from "./jobsSchemas.js";
 import { mediaQueue } from "../../queues/mediaQueue.js";
 
-type JobData = CreateJobBody["data"];
-
 export type JobRecord = {
   id: string;
+  fileId: string;
   type: JobType;
   status: JobStatus;
   data: Prisma.JsonValue;
@@ -23,16 +22,28 @@ export type JobRecord = {
 function toJobResponse(job: JobRecord): CreateJobReply {
   return {
     jobId: job.id,
-    jobType: job.type,
-    status: job.status,
-    data: job.data as JobData,
+    fileId: job.fileId,
+    jobType:
+      job.type == "IMAGE_TRANSCODE"
+        ? "image.transcode"
+        : job.type == "IMAGE_ALTTEXT"
+          ? "image.alttext"
+          : "image.resize",
+    status:
+      job.status == "PENDING"
+        ? "pending"
+        : job.status == "IN_PROGRESS"
+          ? "in_progress"
+          : job.status == "COMPLETED"
+            ? "completed"
+            : "failed",
+    options: job.data as CreateJobBody["options"],
   };
 }
 
 export async function createJob(
   userId: string,
-  jobType: JobType,
-  jobData: JobData,
+  jobData: CreateJobBody,
 ): Promise<CreateJobReply> {
   const placeholderId = randomUUID();
 
@@ -53,11 +64,17 @@ export async function createJob(
         userId,
         fileId: file.id,
         status: "PENDING",
-        type: jobType,
-        data: jobData as Prisma.InputJsonValue,
+        type:
+          jobData.type == "image.alttext"
+            ? "IMAGE_ALTTEXT"
+            : jobData.type == "image.transcode"
+              ? "IMAGE_TRANSCODE"
+              : "IMAGE_RESIZE",
+        data: jobData.options as Prisma.InputJsonValue,
       },
       select: {
         id: true,
+        fileId: true,
         type: true,
         status: true,
         data: true,
@@ -65,11 +82,13 @@ export async function createJob(
     });
   });
 
-  await mediaQueue.add(job.id, {
-    type: job.type,
-    status: job.status,
-    data: job.data as JobData,
-    id: job.id,
+  const queuePayload: CreateJobBody = {
+    ...jobData,
+    fileId: job.fileId,
+  };
+
+  await mediaQueue.add(jobData.type, queuePayload, {
+    jobId: job.id,
   });
 
   return toJobResponse(job);
@@ -86,6 +105,7 @@ export async function getJob(
     },
     select: {
       id: true,
+      fileId: true,
       type: true,
       status: true,
       data: true,
@@ -109,6 +129,7 @@ export async function listJobs(userId: string): Promise<ListJobsReply> {
     },
     select: {
       id: true,
+      fileId: true,
       type: true,
       status: true,
       data: true,

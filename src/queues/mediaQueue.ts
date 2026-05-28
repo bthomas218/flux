@@ -1,4 +1,15 @@
 import { Queue } from "bullmq";
-import type { JobRecord } from "../modules/jobs/jobsService.js";
+import { cfg } from "../cfg.js";
+import type {
+  ImageJobNames,
+  ImageJobPayload,
+  ImageResultPayLoad,
+} from "../types/imageJobTypes.js";
 
-export const mediaQueue = new Queue<JobRecord>("media");
+const connection = cfg.redis;
+
+export const mediaQueue = new Queue<
+  ImageJobPayload,
+  ImageResultPayLoad,
+  ImageJobNames
+>("media", { connection });

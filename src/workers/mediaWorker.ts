@@ -1,37 +1,76 @@
 import { Worker } from "bullmq";
-import { Redis } from "ioredis";
+import { cfg } from "../cfg.js";
 import { prisma } from "../lib/prisma.js";
-const connection = new Redis({ maxRetriesPerRequest: null });
-import type { JobRecord } from "../modules/jobs/jobsService.js";
+const connection = cfg.redis;
+import type {
+  ImageJobNames,
+  ImageJobPayload,
+  ImageResultPayLoad,
+  ImageResizePayload,
+} from "../types/imageJobTypes.js";
 
 // Spoof job for now
-const mediaWorker = new Worker<JobRecord>(
+const mediaWorker = new Worker<
+  ImageJobPayload,
+  ImageResultPayLoad,
+  ImageJobNames
+>(
   "media",
   async (job) => {
-    console.log("Processing job:", job.id, job.data);
-
-    await prisma.job.update({
-      where: {
-        id: job.data.id,
-      },
-      data: {
-        status: "IN_PROGRESS",
-      },
-    });
-
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-
-    await prisma.job.update({
-      where: {
-        id: job.data.id,
-      },
-      data: {
-        status: "COMPLETED",
-      },
-    });
-
-    console.log("Job completed:", job.id);
+    switch (job.name) {
+      case "image.resize":
+        return await resizeProcessor(job.data as ImageResizePayload);
+      case "image.transcode":
+        return await transcodeProcessor(job.data);
+      case "image.alttext":
+        return await altTextProcessor(job.data);
+      default:
+        throw new Error(`Unknown job name: ${job.name}`);
+    }
   },
   { connection },
 );
+
+// TODO: Implement the logic for image transcode job
+const resizeProcessor = async (
+  data: ImageResizePayload,
+): Promise<ImageResultPayLoad> => {
+  return {
+    type: "image.resize",
+    output: {
+      fileId: data.fileId,
+      storageKey: "fake-storage-key",
+      mimeType: "image/jpeg",
+      width: data.options.width || 100,
+      height: data.options.height || 100,
+    },
+  };
+};
+
+// TODO: Implement the logic for image transcode job
+const transcodeProcessor = async (
+  data: ImageJobPayload,
+): Promise<ImageResultPayLoad> => {
+  return {
+    type: "image.transcode",
+    output: {
+      fileId: data.fileId,
+      storageKey: "fake-storage-key",
+      mimeType: "image/jpeg",
+      width: 100,
+      height: 100,
+    },
+  };
+};
+
+// Implement the logic for image alt text job
+const altTextProcessor = async (
+  data: ImageJobPayload,
+): Promise<ImageResultPayLoad> => {
+  return {
+    type: "image.alttext",
+    output: {
+      altText: "Fake alt text",
+    },
+  };
+};

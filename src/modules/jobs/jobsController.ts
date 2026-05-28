@@ -13,17 +13,11 @@ export const createJobHandler = async (
   request: FastifyRequest<{ Body: CreateJobBody }>,
   reply: FastifyReply<{ Reply: CreateJobReply }>,
 ) => {
-  const { jobType, data } = request.body;
   const userId = request.apiKey!.userId;
 
-  const job = await createJob(userId, jobType, data);
+  const job = await createJob(userId, request.body);
 
-  reply.send({
-    jobId: job.jobId,
-    jobType: job.jobType,
-    status: job.status,
-    data: job.data,
-  });
+  reply.send(job);
 };
 
 export const getJobHandler = async (
@@ -35,12 +29,7 @@ export const getJobHandler = async (
 
   const job = await getJob(userId, id);
 
-  reply.send({
-    jobId: job.jobId,
-    jobType: job.jobType,
-    status: job.status,
-    data: job.data,
-  });
+  reply.send(job);
 };
 
 export const listJobsHandler = async (
@@ -50,12 +39,5 @@ export const listJobsHandler = async (
   const userId = request.apiKey!.userId;
 
   const jobs = await listJobs(userId);
-  reply.send(
-    jobs.map((job) => ({
-      jobId: job.jobId,
-      jobType: job.jobType,
-      status: job.status,
-      data: job.data,
-    })),
-  );
+  reply.send(jobs);
 };
