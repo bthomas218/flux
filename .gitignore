@@ -22,3 +22,8 @@ generated/
 
 .agents
 .codex
+
+/uploads
+
+# Testing image
+lemon.png
