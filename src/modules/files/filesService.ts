@@ -3,6 +3,7 @@ import fs from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
 import { prisma } from "../../lib/prisma.js";
+import { generateToken } from "../../lib/crypto.js";
 
 // Only images for now
 const allowedMimeTypes = [
@@ -14,7 +15,7 @@ const allowedMimeTypes = [
 
 const allowedExtensions = ["jpg", "jpeg", "png", "webp", "avif"];
 
-export async function uploadFileService(
+export async function uploadFile(
   userId: string,
   stream: NodeJS.ReadableStream,
   filename: string,
@@ -44,10 +45,34 @@ export async function uploadFileService(
       filename,
       mimeType: mimetype,
       url,
-      storageKey: "", // Placeholder for storage key if using external storage
+      storageKey: generateToken(), // Placeholder for storage key if using external storage
       size,
     },
   });
 
   return file;
+}
+
+export async function getFile(fileId: string, userId: string) {
+  const file = await prisma.file.findUnique({
+    where: {
+      id: fileId,
+      userId,
+    },
+  });
+
+  if (!file) {
+    throw new BadRequestError("File not found");
+  }
+
+  return file;
+}
+
+export async function listFiles(userId: string) {
+  const files = await prisma.file.findMany({
+    where: {
+      userId,
+    },
+  });
+  return files;
 }

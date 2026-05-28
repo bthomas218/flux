@@ -6,6 +6,11 @@ import {
   getFileHandler,
   listFilesHandler,
 } from "./filesController.js";
+import {
+  getFileParamsSchema,
+  getFileResponseSchema,
+  listFilesResponseSchema,
+} from "./filesSchemas.js";
 
 export function filesRoutes(app: FastifyInstance) {
   app.register(import("@fastify/multipart"));
@@ -18,7 +23,11 @@ export function filesRoutes(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
     "/files",
     {
-      schema: {},
+      schema: {
+        response: {
+          200: getFileResponseSchema,
+        },
+      },
     },
     uploadFileHandler,
   );
@@ -26,7 +35,11 @@ export function filesRoutes(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().get(
     "/files",
     {
-      schema: {},
+      schema: {
+        response: {
+          200: listFilesResponseSchema,
+        },
+      },
     },
     listFilesHandler,
   );
@@ -34,7 +47,12 @@ export function filesRoutes(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().get(
     "/files/:id",
     {
-      schema: {},
+      schema: {
+        params: getFileParamsSchema,
+        response: {
+          200: getFileResponseSchema,
+        },
+      },
     },
     getFileHandler,
   );

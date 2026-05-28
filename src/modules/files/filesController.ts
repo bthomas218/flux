@@ -1,11 +1,16 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { BadRequestError } from "../../errors.js";
-import { uploadFileService } from "./filesService.js";
+import { getFile, listFiles, uploadFile } from "./filesService.js";
+import type {
+  GetFileReply,
+  UploadFileReply,
+  GetFileParams,
+  ListFilesReply,
+} from "./filesSchemas.js";
 
-// TODO: Implement file upload logic
 export const uploadFileHandler = async (
   request: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply<{ Reply: UploadFileReply }>,
 ) => {
   if (!request.isMultipart()) {
     throw new BadRequestError("Request is not multipart/form-data");
@@ -20,28 +25,27 @@ export const uploadFileHandler = async (
   const userId = request.apiKey!.userId;
   const { file, filename, mimetype } = data;
 
-  const uploadedFile = await uploadFileService(
-    userId,
-    file,
-    filename,
-    mimetype,
-  );
+  const uploadedFile = await uploadFile(userId, file, filename, mimetype);
 
   reply.send(uploadedFile);
 };
 
-// TODO: Implement file retrieval logic
 export const getFileHandler = async (
-  request: FastifyRequest,
-  reply: FastifyReply,
+  request: FastifyRequest<{ Params: GetFileParams }>,
+  reply: FastifyReply<{ Reply: GetFileReply }>,
 ) => {
-  reply.send({ message: "Get file endpoint is not yet implemented." });
+  const userId = request.apiKey!.userId;
+  const { id } = request.params as { id: string };
+
+  const file = await getFile(id, userId);
+  reply.send(file);
 };
 
-// TODO: Implement file listing logic
 export const listFilesHandler = async (
   request: FastifyRequest,
-  reply: FastifyReply,
+  reply: FastifyReply<{ Reply: ListFilesReply }>,
 ) => {
-  reply.send({ message: "List files endpoint is not yet implemented." });
+  const userId = request.apiKey!.userId;
+  const files = await listFiles(userId);
+  reply.send(files);
 };
