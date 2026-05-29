@@ -13,7 +13,7 @@ export type ImageResizePayload = {
   };
 };
 
-type ImageTranscodePayload = {
+export type ImageTranscodePayload = {
   type: "image.transcode";
   fileId: string;
   options: {
@@ -22,7 +22,7 @@ type ImageTranscodePayload = {
   };
 };
 
-type ImageAltTextPayload = {
+export type ImageAltTextPayload = {
   type: "image.alttext";
   fileId: string;
   options?: Record<string, never>;

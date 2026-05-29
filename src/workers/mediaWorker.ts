@@ -7,6 +7,8 @@ import type {
   ImageJobPayload,
   ImageResultPayLoad,
   ImageResizePayload,
+  ImageTranscodePayload,
+  ImageAltTextPayload,
 } from "../types/imageJobTypes.js";
 
 // Spoof job for now
@@ -17,9 +19,9 @@ const mediaWorker = new Worker<
 >(
   "media",
   async (job) => {
-    switch (job.name) {
+    switch (job.data.type) {
       case "image.resize":
-        return await resizeProcessor(job.data as ImageResizePayload);
+        return await resizeProcessor(job.data);
       case "image.transcode":
         return await transcodeProcessor(job.data);
       case "image.alttext":
@@ -31,7 +33,7 @@ const mediaWorker = new Worker<
   { connection },
 );
 
-// TODO: Implement the logic for image transcode job
+// TODO: Implement the logic for image resize job
 const resizeProcessor = async (
   data: ImageResizePayload,
 ): Promise<ImageResultPayLoad> => {
@@ -49,7 +51,7 @@ const resizeProcessor = async (
 
 // TODO: Implement the logic for image transcode job
 const transcodeProcessor = async (
-  data: ImageJobPayload,
+  data: ImageTranscodePayload,
 ): Promise<ImageResultPayLoad> => {
   return {
     type: "image.transcode",
@@ -65,7 +67,7 @@ const transcodeProcessor = async (
 
 // Implement the logic for image alt text job
 const altTextProcessor = async (
-  data: ImageJobPayload,
+  data: ImageAltTextPayload,
 ): Promise<ImageResultPayLoad> => {
   return {
     type: "image.alttext",
