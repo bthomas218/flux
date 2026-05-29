@@ -45,19 +45,16 @@ export async function createJob(
   userId: string,
   jobData: CreateJobBody,
 ): Promise<CreateJobReply> {
-  const placeholderId = randomUUID();
-
   const job = await prisma.$transaction(async (tx) => {
-    const file = await tx.file.create({
-      data: {
-        userId,
-        storageKey: `placeholder/${placeholderId}`,
-        filename: "placeholder",
-        mimeType: "application/octet-stream",
-        size: 0,
-        url: `placeholder://${placeholderId}`,
+    const file = await tx.file.findUnique({
+      where: {
+        id: jobData.fileId,
       },
     });
+
+    if (!file) {
+      throw new NotFoundError("File not found");
+    }
 
     return tx.job.create({
       data: {
