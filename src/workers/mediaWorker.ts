@@ -1,17 +1,16 @@
 import { Worker } from "bullmq";
 import { cfg } from "../cfg.js";
-import { prisma } from "../lib/prisma.js";
+
 const connection = cfg.redis;
 import type {
   ImageJobNames,
   ImageJobPayload,
   ImageResultPayLoad,
-  ImageResizePayload,
   ImageTranscodePayload,
   ImageAltTextPayload,
 } from "../types/imageJobTypes.js";
+import resizeProcessor from "./processors/image/resizeProcessor.js";
 
-// Spoof job for now
 const mediaWorker = new Worker<
   ImageJobPayload,
   ImageResultPayLoad,
@@ -21,7 +20,7 @@ const mediaWorker = new Worker<
   async (job) => {
     switch (job.data.type) {
       case "image.resize":
-        return await resizeProcessor(job.data);
+        return await resizeProcessor(job.data, job.id!);
       case "image.transcode":
         return await transcodeProcessor(job.data);
       case "image.alttext":
@@ -32,22 +31,6 @@ const mediaWorker = new Worker<
   },
   { connection },
 );
-
-// TODO: Implement the logic for image resize job
-const resizeProcessor = async (
-  data: ImageResizePayload,
-): Promise<ImageResultPayLoad> => {
-  return {
-    type: "image.resize",
-    output: {
-      fileId: data.fileId,
-      storageKey: "fake-storage-key",
-      mimeType: "image/jpeg",
-      width: data.options.width || 100,
-      height: data.options.height || 100,
-    },
-  };
-};
 
 // TODO: Implement the logic for image transcode job
 const transcodeProcessor = async (

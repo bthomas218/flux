@@ -1,0 +1,163 @@
+import type {
+  ImageResizePayload,
+  ImageResultPayLoad,
+} from "../../../types/imageJobTypes.js";
+import { prisma } from "../../../lib/prisma.js";
+import fs from "node:fs";
+import path from "node:path";
+import sharp from "sharp";
+import { generateToken } from "../../../lib/crypto.js";
+
+// TODO: Implement the logic for image resize job
+const resizeProcessor = async (
+  data: ImageResizePayload,
+  jobId: string,
+): Promise<ImageResultPayLoad> => {
+  console.log(
+    `Starting resize job: ${jobId} for fileId: ${data.fileId} with options:`,
+    data.options,
+  );
+  await updateJobStatus(jobId, "IN_PROGRESS");
+
+  const file = await prisma.file.findUnique({
+    where: {
+      id: data.fileId,
+    },
+  });
+
+  if (!file) {
+    updateJobStatus(jobId, "FAILED");
+    console.log(`File with id ${data.fileId} not found`);
+    throw new Error("File not found");
+  }
+
+  try {
+    await fs.promises.access(file.url, fs.constants.F_OK);
+  } catch (err) {
+    await updateJobStatus(jobId, "FAILED");
+    console.log(
+      `File with id ${data.fileId} not found on disk at path: ${file.url}`,
+    );
+    throw new Error("File not found on disk");
+  }
+
+  try {
+    const outputDir = path.join("outputs", file.userId, jobId);
+    await fs.promises.mkdir(outputDir, { recursive: true });
+
+    const { info, outputPath } = await resizeImage(
+      file.url,
+      outputDir,
+      file.filename,
+      file.filename.split(".").pop() || "jpg",
+      data.options.width,
+      data.options.height,
+      data.options.fit,
+    );
+
+    console.log("Image resized successfully");
+    const newFile = await prisma.file.create({
+      data: {
+        userId: file.userId,
+        filename: `${file.filename}-resized`,
+        storageKey: generateToken(), // Placeholder for storage key if using external storage
+        mimeType: file.mimeType,
+        url: outputPath,
+        size: info.size,
+      },
+    });
+    console.log(`New resized file created with id: ${newFile.id}`);
+
+    console.log(`Updating job status to COMPLETED for jobId: ${jobId}`);
+    Promise.race([
+      updateJobStatus(jobId, "COMPLETED"),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Job timed out")), 5000),
+      ),
+    ]);
+
+    console.log(`Resize job completed for fileId: ${data.fileId}`);
+
+    return {
+      type: "image.resize",
+      output: {
+        fileId: newFile.id,
+        storageKey: newFile.storageKey,
+        mimeType: newFile.mimeType,
+        width: data.options.width || info.width || 0,
+        height: data.options.height || info.height || 0,
+      },
+    };
+  } catch (err) {
+    await updateJobStatus(jobId, "FAILED");
+    console.error(`Error resizing image for fileId: ${data.fileId}`, err);
+    throw new Error("Failed to resize image");
+  }
+};
+
+async function updateJobStatus(
+  jobId: string,
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+) {
+  const now = new Date();
+
+  const data: {
+    status: typeof status;
+    startedAt?: Date;
+    finishedAt?: Date;
+  } = {
+    status,
+  };
+
+  if (status === "IN_PROGRESS") {
+    data.startedAt = now;
+  } else if (status === "COMPLETED" || status === "FAILED") {
+    data.finishedAt = now;
+  }
+
+  await prisma.job.update({
+    where: {
+      id: jobId,
+    },
+    data,
+  });
+}
+
+async function resizeImage(
+  inputPath: string,
+  outputDir: string,
+  fileName: string,
+  extension: string,
+  width?: number,
+  height?: number,
+  fit?: "cover" | "contain" | "fill" | "inside" | "outside",
+) {
+  const image = sharp(inputPath).resize({
+    width,
+    height,
+    fit,
+  });
+  let info;
+  const outputPath = path.join(outputDir, `${fileName}-resized.${extension}`);
+  switch (extension.toLowerCase()) {
+    case "jpg":
+    case "jpeg":
+      info = await image.jpeg().toFile(outputPath);
+      break;
+    case "png":
+      info = await image.png().toFile(outputPath);
+      break;
+    case "webp":
+      info = await image.webp().toFile(outputPath);
+      break;
+    case "avif":
+      info = await image.avif().toFile(outputPath);
+      break;
+    default:
+      throw new Error("Unsupported file extension");
+  }
+
+  return { info, outputPath };
+}
+
+export default resizeProcessor;

@@ -24,6 +24,7 @@ generated/
 .codex
 
 /uploads
+/outputs
 
 # Testing image
 lemon.png
