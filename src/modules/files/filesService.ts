@@ -54,10 +54,11 @@ export async function uploadFile(
 }
 
 export async function getFile(fileId: string, userId: string) {
-  const file = await prisma.file.findUnique({
+  const file = await prisma.file.findFirst({
     where: {
       id: fileId,
       userId,
+      deletedAt: null,
     },
   });
 
@@ -72,9 +73,36 @@ export async function listFiles(userId: string) {
   const files = await prisma.file.findMany({
     where: {
       userId,
+      deletedAt: null,
     },
   });
   return files;
+}
+
+export async function deleteFile(fileId: string, userId: string) {
+  const file = await getFile(fileId, userId);
+  const absolutePath = path.resolve(process.cwd(), file.url);
+
+  try {
+    await fs.promises.unlink(absolutePath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  await prisma.file.update({
+    where: {
+      id: file.id,
+    },
+    data: {
+      deletedAt: new Date(),
+    },
+  });
+
+  return {
+    success: true,
+  };
 }
 
 export async function downloadFile(fileId: string, userId: string) {

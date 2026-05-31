@@ -1,17 +1,18 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
-import fs from "node:fs";
 import { BadRequestError } from "../../errors.js";
 import {
   getFile,
   listFiles,
   uploadFile,
   downloadFile,
+  deleteFile,
 } from "./filesService.js";
 import type {
   GetFileReply,
   UploadFileReply,
   GetFileParams,
   ListFilesReply,
+  DeleteFileReply,
 } from "./filesSchemas.js";
 
 export const uploadFileHandler = async (
@@ -76,4 +77,14 @@ export const downloadFileHandler = async (
     );
 
   return reply.send(stream);
+};
+
+export const deleteFileHandler = async (
+  request: FastifyRequest<{ Params: GetFileParams }>,
+  reply: FastifyReply<{ Reply: DeleteFileReply }>,
+) => {
+  const userId = request.apiKey!.userId;
+  const { id } = request.params as { id: string };
+
+  reply.send(await deleteFile(id, userId));
 };

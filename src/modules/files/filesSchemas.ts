@@ -16,8 +16,12 @@ export const getFileParamsSchema = z.object({
 
 export const getFileResponseSchema = uploadFileResponseSchema;
 export const listFilesResponseSchema = z.array(uploadFileResponseSchema);
+export const deleteFileResponseSchema = z.object({
+  success: z.boolean(),
+});
 
 export type GetFileParams = z.infer<typeof getFileParamsSchema>;
 export type UploadFileReply = z.infer<typeof uploadFileResponseSchema>;
 export type GetFileReply = z.infer<typeof getFileResponseSchema>;
 export type ListFilesReply = z.infer<typeof listFilesResponseSchema>;
+export type DeleteFileReply = z.infer<typeof deleteFileResponseSchema>;

@@ -6,8 +6,10 @@ import {
   getFileHandler,
   listFilesHandler,
   downloadFileHandler,
+  deleteFileHandler,
 } from "./filesController.js";
 import {
+  deleteFileResponseSchema,
   getFileParamsSchema,
   getFileResponseSchema,
   listFilesResponseSchema,
@@ -66,5 +68,18 @@ export function filesRoutes(app: FastifyInstance) {
       },
     },
     downloadFileHandler,
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().delete(
+    "/files/:id",
+    {
+      schema: {
+        params: getFileParamsSchema,
+        response: {
+          200: deleteFileResponseSchema,
+        },
+      },
+    },
+    deleteFileHandler,
   );
 }
