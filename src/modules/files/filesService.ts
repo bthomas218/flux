@@ -1,4 +1,4 @@
-import { BadRequestError, NotFoundError } from "../../errors.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../../errors.js";
 import fs from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -81,6 +81,21 @@ export async function listFiles(userId: string) {
 
 export async function deleteFile(fileId: string, userId: string) {
   const file = await getFile(fileId, userId);
+
+  const isInUse = await prisma.job.findFirst({
+    where: {
+      fileId: file.id,
+      status: {
+        in: ["PENDING", "IN_PROGRESS"],
+      },
+      finishedAt: null,
+    },
+  });
+
+  if (isInUse) {
+    throw new ConflictError("File is currently in use");
+  }
+
   const absolutePath = path.resolve(process.cwd(), file.url);
 
   try {
