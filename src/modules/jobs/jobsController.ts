@@ -7,8 +7,6 @@ import type {
   GetJobReply,
 } from "./jobsSchemas.js";
 
-// TODO: Implement the actual logic for creating and retrieving jobs in the service layer
-
 export const createJobHandler = async (
   request: FastifyRequest<{ Body: CreateJobBody }>,
   reply: FastifyReply<{ Reply: CreateJobReply }>,

@@ -13,10 +13,6 @@ const resizeProcessor = async (
   data: ImageResizePayload,
   jobId: string,
 ): Promise<ImageResultPayLoad> => {
-  console.log(
-    `Starting resize job: ${jobId} for fileId: ${data.fileId} with options:`,
-    data.options,
-  );
   await updateJobStatus(jobId, "IN_PROGRESS");
 
   const file = await prisma.file.findUnique({
@@ -26,8 +22,7 @@ const resizeProcessor = async (
   });
 
   if (!file) {
-    updateJobStatus(jobId, "FAILED");
-    console.log(`File with id ${data.fileId} not found`);
+    await updateJobStatus(jobId, "FAILED");
     throw new Error("File not found");
   }
 
@@ -66,15 +61,8 @@ const resizeProcessor = async (
         size: info.size,
       },
     });
-    console.log(`New resized file created with id: ${newFile.id}`);
 
-    console.log(`Updating job status to COMPLETED for jobId: ${jobId}`);
-    Promise.race([
-      updateJobStatus(jobId, "COMPLETED"),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Job timed out")), 5000),
-      ),
-    ]);
+    await updateJobStatus(jobId, "COMPLETED", newFile.id);
 
     console.log(`Resize job completed for fileId: ${data.fileId}`);
 
@@ -90,7 +78,6 @@ const resizeProcessor = async (
     };
   } catch (err) {
     await updateJobStatus(jobId, "FAILED");
-    console.error(`Error resizing image for fileId: ${data.fileId}`, err);
     throw new Error("Failed to resize image");
   }
 };
@@ -98,11 +85,13 @@ const resizeProcessor = async (
 async function updateJobStatus(
   jobId: string,
   status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+  newFileId?: string,
 ) {
   const now = new Date();
 
   const data: {
     status: typeof status;
+    outputFileId?: string;
     startedAt?: Date;
     finishedAt?: Date;
   } = {
@@ -111,7 +100,10 @@ async function updateJobStatus(
 
   if (status === "IN_PROGRESS") {
     data.startedAt = now;
-  } else if (status === "COMPLETED" || status === "FAILED") {
+  } else if (status === "COMPLETED") {
+    data.finishedAt = now;
+    data.outputFileId = newFileId;
+  } else if (status === "FAILED") {
     data.finishedAt = now;
   }
 

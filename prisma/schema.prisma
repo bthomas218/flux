@@ -54,6 +54,7 @@ model Job {
   id String @id @default(cuid())
   userId String
   fileId String
+  outputFileId String?
   user User @relation(fields: [userId], references: [id])
   file File @relation(fields: [fileId], references: [id])
 

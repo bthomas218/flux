@@ -14,6 +14,7 @@ import { mediaQueue } from "../../queues/mediaQueue.js";
 export type JobRecord = {
   id: string;
   fileId: string;
+  outputFileId: string | null;
   type: JobType;
   status: JobStatus;
   data: Prisma.JsonValue;
@@ -23,6 +24,7 @@ function toJobResponse(job: JobRecord): CreateJobReply {
   return {
     jobId: job.id,
     fileId: job.fileId,
+    outputFileId: job.outputFileId,
     jobType:
       job.type == "IMAGE_TRANSCODE"
         ? "image.transcode"
@@ -75,6 +77,7 @@ export async function createJob(
         type: true,
         status: true,
         data: true,
+        outputFileId: true,
       },
     });
   });
@@ -106,6 +109,7 @@ export async function getJob(
       type: true,
       status: true,
       data: true,
+      outputFileId: true,
     },
   });
 
@@ -127,6 +131,7 @@ export async function listJobs(userId: string): Promise<ListJobsReply> {
     select: {
       id: true,
       fileId: true,
+      outputFileId: true,
       type: true,
       status: true,
       data: true,

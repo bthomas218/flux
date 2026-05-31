@@ -48,6 +48,7 @@ export const createJobBodySchema = z.discriminatedUnion("type", [
 export const createJobResponseSchema = z.object({
   jobId: z.string(),
   fileId: z.string(),
+  outputFileId: z.string().nullable(),
   jobType: jobTypeSchema,
   status: jobStatusSchema,
   options: z.union([
