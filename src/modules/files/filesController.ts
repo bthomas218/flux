@@ -1,6 +1,12 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
+import fs from "node:fs";
 import { BadRequestError } from "../../errors.js";
-import { getFile, listFiles, uploadFile } from "./filesService.js";
+import {
+  getFile,
+  listFiles,
+  uploadFile,
+  downloadFile,
+} from "./filesService.js";
 import type {
   GetFileReply,
   UploadFileReply,
@@ -48,4 +54,26 @@ export const listFilesHandler = async (
   const userId = request.apiKey!.userId;
   const files = await listFiles(userId);
   reply.send(files);
+};
+
+export const downloadFileHandler = async (
+  request: FastifyRequest<{ Params: GetFileParams }>,
+  reply: FastifyReply,
+) => {
+  const userId = request.apiKey!.userId;
+  const { id } = request.params as { id: string };
+
+  const { stream, filename, mimeType, size } = await downloadFile(id, userId);
+
+  const safeFilename = filename.replace(/["\\\r\n]/g, "_");
+
+  reply
+    .type(mimeType)
+    .header("Content-Length", size.toString())
+    .header(
+      "Content-Disposition",
+      `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(filename)}`,
+    );
+
+  return reply.send(stream);
 };

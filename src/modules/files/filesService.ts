@@ -1,4 +1,4 @@
-import { BadRequestError } from "../../errors.js";
+import { BadRequestError, NotFoundError } from "../../errors.js";
 import fs from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -62,7 +62,7 @@ export async function getFile(fileId: string, userId: string) {
   });
 
   if (!file) {
-    throw new BadRequestError("File not found");
+    throw new NotFoundError("File not found");
   }
 
   return file;
@@ -75,4 +75,23 @@ export async function listFiles(userId: string) {
     },
   });
   return files;
+}
+
+export async function downloadFile(fileId: string, userId: string) {
+  const file = await getFile(fileId, userId);
+
+  const absolutePath = path.resolve(process.cwd(), file.url);
+
+  if (!fs.existsSync(absolutePath)) {
+    throw new NotFoundError("File not found on disk");
+  }
+
+  const stream = fs.createReadStream(absolutePath);
+
+  return {
+    stream,
+    filename: file.filename,
+    mimeType: file.mimeType,
+    size: file.size,
+  };
 }

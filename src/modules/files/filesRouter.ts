@@ -5,6 +5,7 @@ import {
   uploadFileHandler,
   getFileHandler,
   listFilesHandler,
+  downloadFileHandler,
 } from "./filesController.js";
 import {
   getFileParamsSchema,
@@ -55,5 +56,15 @@ export function filesRoutes(app: FastifyInstance) {
       },
     },
     getFileHandler,
+  );
+
+  app.withTypeProvider<ZodTypeProvider>().get(
+    "/files/:id/download",
+    {
+      schema: {
+        params: getFileParamsSchema,
+      },
+    },
+    downloadFileHandler,
   );
 }
