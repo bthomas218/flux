@@ -7,6 +7,8 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { generateToken } from "../../../lib/crypto.js";
+import { webhookQueue } from "../../../queues/webhookQueue.js";
+import type { WebhookJobPayload } from "../../../types/webhookJobTypes.js";
 
 // TODO: Implement the logic for image resize job
 const resizeProcessor = async (
@@ -23,6 +25,13 @@ const resizeProcessor = async (
 
   if (!file) {
     await updateJobStatus(jobId, "FAILED");
+    await sendWebhookNotification(
+      jobId,
+      "FAILED",
+      data.fileId,
+      undefined,
+      "File not found",
+    );
     throw new Error("File not found");
   }
 
@@ -30,8 +39,12 @@ const resizeProcessor = async (
     await fs.promises.access(file.url, fs.constants.F_OK);
   } catch (err) {
     await updateJobStatus(jobId, "FAILED");
-    console.log(
-      `File with id ${data.fileId} not found on disk at path: ${file.url}`,
+    await sendWebhookNotification(
+      jobId,
+      "FAILED",
+      data.fileId,
+      undefined,
+      "File not found on disk",
     );
     throw new Error("File not found on disk");
   }
@@ -66,6 +79,8 @@ const resizeProcessor = async (
 
     console.log(`Resize job completed for fileId: ${data.fileId}`);
 
+    await sendWebhookNotification(jobId, "COMPLETED", data.fileId, newFile.id);
+
     return {
       type: "image.resize",
       output: {
@@ -78,7 +93,14 @@ const resizeProcessor = async (
     };
   } catch (err) {
     await updateJobStatus(jobId, "FAILED");
-    throw new Error("Failed to resize image");
+    await sendWebhookNotification(
+      jobId,
+      "FAILED",
+      data.fileId,
+      undefined,
+      (err as Error).message,
+    );
+    throw new Error(`Error processing image resize job: ${err}`);
   }
 };
 
@@ -151,5 +173,42 @@ async function resizeImage(
 
   return { info, outputPath };
 }
+
+async function sendWebhookNotification(
+  jobId: string,
+  status: "COMPLETED" | "FAILED",
+  inputFileId: string,
+  outputFileId?: string,
+  errorMessage?: string,
+) {
+  const payload =
+    status === "COMPLETED"
+      ? {
+          event: "job.completed",
+          type: "image.resize",
+          jobId,
+          status,
+          result: {
+            inputFileId,
+            outputFileId: outputFileId!,
+          },
+        }
+      : {
+          event: "job.failed",
+          type: "image.resize",
+          jobId,
+          status,
+          error: {
+            message: errorMessage || "Unknown error",
+          },
+        };
+
+  await webhookQueue.add(
+    status === "COMPLETED" ? "job.completed" : "job.failed",
+    payload as WebhookJobPayload,
+  );
+}
+
+export { resizeProcessor, sendWebhookNotification };
 
 export default resizeProcessor;
