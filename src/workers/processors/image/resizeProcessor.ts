@@ -27,6 +27,7 @@ const resizeProcessor = async (
     await updateJobStatus(jobId, "FAILED");
     await sendWebhookNotification(
       jobId,
+      data.userId,
       "FAILED",
       data.fileId,
       undefined,
@@ -41,6 +42,7 @@ const resizeProcessor = async (
     await updateJobStatus(jobId, "FAILED");
     await sendWebhookNotification(
       jobId,
+      data.userId,
       "FAILED",
       data.fileId,
       undefined,
@@ -79,7 +81,13 @@ const resizeProcessor = async (
 
     console.log(`Resize job completed for fileId: ${data.fileId}`);
 
-    await sendWebhookNotification(jobId, "COMPLETED", data.fileId, newFile.id);
+    await sendWebhookNotification(
+      jobId,
+      data.userId,
+      "COMPLETED",
+      data.fileId,
+      newFile.id,
+    );
 
     return {
       type: "image.resize",
@@ -95,6 +103,7 @@ const resizeProcessor = async (
     await updateJobStatus(jobId, "FAILED");
     await sendWebhookNotification(
       jobId,
+      data.userId,
       "FAILED",
       data.fileId,
       undefined,
@@ -176,6 +185,7 @@ async function resizeImage(
 
 async function sendWebhookNotification(
   jobId: string,
+  userId: string,
   status: "COMPLETED" | "FAILED",
   inputFileId: string,
   outputFileId?: string,
@@ -187,6 +197,7 @@ async function sendWebhookNotification(
           event: "job.completed",
           type: "image.resize",
           jobId,
+          userId,
           status,
           result: {
             inputFileId,
@@ -197,6 +208,7 @@ async function sendWebhookNotification(
           event: "job.failed",
           type: "image.resize",
           jobId,
+          userId,
           status,
           error: {
             message: errorMessage || "Unknown error",

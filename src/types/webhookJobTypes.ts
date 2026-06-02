@@ -6,6 +6,7 @@ export type WebhookJobPayload =
       event: "job.completed";
       type: ImageJobNames;
       jobId: string;
+      userId: string;
       status: "COMPLETED";
       result: {
         inputFileId: string;
@@ -15,6 +16,7 @@ export type WebhookJobPayload =
   | {
       event: "job.failed";
       type: ImageJobNames;
+      userId: string;
       jobId: string;
       status: "FAILED";
       error: {

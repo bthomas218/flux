@@ -87,9 +87,13 @@ export async function createJob(
     fileId: job.fileId,
   };
 
-  await mediaQueue.add(jobData.type, queuePayload, {
-    jobId: job.id,
-  });
+  await mediaQueue.add(
+    jobData.type,
+    { ...queuePayload, userId },
+    {
+      jobId: job.id,
+    },
+  );
 
   return toJobResponse(job);
 }
