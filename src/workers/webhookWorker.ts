@@ -7,12 +7,15 @@ import type {
 import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/crypto.js";
 
-//TODO: send an actual webhook
+type WebhookEndpointRecord = {
+  url: string;
+};
+
 const connection = cfg.redis;
 const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
   "webhook",
   async (job) => {
-    const EncryptedWebhookSecret = await prisma.user.findUnique({
+    const encryptedWebhookSecret = await prisma.user.findUnique({
       where: {
         id: job.data.userId,
       },
@@ -21,9 +24,7 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
       },
     });
 
-    console.dir(EncryptedWebhookSecret, { depth: null });
-
-    const [iv, data, tag] = (EncryptedWebhookSecret?.webhookSecret || "").split(
+    const [iv, data, tag] = (encryptedWebhookSecret?.webhookSecret || "").split(
       ":",
     );
 
@@ -33,35 +34,30 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
     }
 
     const webhookSecret = await decrypt(cfg.ENCRYPTION_KEY, iv, data, tag);
-    console.log(
-      `Decrypted webhook secret for user ${job.data.userId}: ${webhookSecret}`,
-    );
+
+    const endpoints = await prisma.$queryRaw<WebhookEndpointRecord[]>`
+      SELECT "url"
+      FROM "WebhookEndpoint"
+      WHERE "userId" = ${job.data.userId}
+    `;
+
+    if (endpoints.length === 0) {
+      console.log(`No webhook endpoints configured for user ${job.data.userId}`);
+      return;
+    }
+
     switch (job.data.event) {
       case "job.completed":
         console.log(
           `Webhook: Job completed for jobId ${job.data.jobId}, type ${job.data.type}`,
         );
-        await fetch(cfg.WEBHOOK_URL!, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Webhook-Secret": webhookSecret,
-          },
-          body: JSON.stringify(job.data),
-        });
+        await sendWebhookPayload(endpoints, webhookSecret, job.data);
         break;
       case "job.failed":
         console.log(
           `Webhook: Job failed for jobId ${job.data.jobId}, type ${job.data.type}, error: ${job.data.error.message}`,
         );
-        await fetch(cfg.WEBHOOK_URL!, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Webhook-Secret": webhookSecret,
-          },
-          body: JSON.stringify(job.data),
-        });
+        await sendWebhookPayload(endpoints, webhookSecret, job.data);
         break;
       default:
         throw new Error(`Unknown webhook event`);
@@ -69,3 +65,22 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
   },
   { connection },
 );
+
+async function sendWebhookPayload(
+  endpoints: WebhookEndpointRecord[],
+  webhookSecret: string,
+  payload: WebhookJobPayload,
+) {
+  await Promise.all(
+    endpoints.map((endpoint) =>
+      fetch(endpoint.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Webhook-Secret": webhookSecret,
+        },
+        body: JSON.stringify(payload),
+      }),
+    ),
+  );
+}

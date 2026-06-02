@@ -4,6 +4,7 @@ import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
 import { filesRoutes } from "./modules/files/filesRouter.js";
+import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -69,6 +70,7 @@ app.register(authRoutes, { prefix: "auth" });
 app.register(apiKeyRoutes);
 app.register(jobsRoutes);
 app.register(filesRoutes);
+app.register(webhookEndpointRoutes);
 
 async function main() {
   try {
