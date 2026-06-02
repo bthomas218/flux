@@ -5,10 +5,22 @@ import type {
 import { prisma } from "../../../lib/prisma.js";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { generateToken } from "../../../lib/crypto.js";
 import { webhookQueue } from "../../../queues/webhookQueue.js";
 import type { WebhookJobPayload } from "../../../types/webhookJobTypes.js";
+
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../..",
+);
+
+function resolveStoragePath(storedPath: string) {
+  return path.isAbsolute(storedPath)
+    ? storedPath
+    : path.resolve(projectRoot, storedPath);
+}
 
 // TODO: Implement the logic for image resize job
 const resizeProcessor = async (
@@ -30,21 +42,26 @@ const resizeProcessor = async (
       data.userId,
       "FAILED",
       data.fileId,
+      data.webHookEndpointId,
       undefined,
       "File not found",
     );
     throw new Error("File not found");
   }
 
+  const inputPath = resolveStoragePath(file.url);
+
   try {
-    await fs.promises.access(file.url, fs.constants.F_OK);
+    await fs.promises.access(inputPath, fs.constants.F_OK);
   } catch (err) {
+    console.log(`File not found on disk at path: ${inputPath}`);
     await updateJobStatus(jobId, "FAILED");
     await sendWebhookNotification(
       jobId,
       data.userId,
       "FAILED",
       data.fileId,
+      data.webHookEndpointId,
       undefined,
       "File not found on disk",
     );
@@ -53,17 +70,19 @@ const resizeProcessor = async (
 
   try {
     const outputDir = path.join("outputs", file.userId, jobId);
-    await fs.promises.mkdir(outputDir, { recursive: true });
+    const outputDirPath = resolveStoragePath(outputDir);
+    await fs.promises.mkdir(outputDirPath, { recursive: true });
 
     const { info, outputPath } = await resizeImage(
-      file.url,
-      outputDir,
+      inputPath,
+      outputDirPath,
       file.filename,
       file.filename.split(".").pop() || "jpg",
       data.options.width,
       data.options.height,
       data.options.fit,
     );
+    const outputUrl = path.join(outputDir, path.basename(outputPath));
 
     console.log("Image resized successfully");
     const newFile = await prisma.file.create({
@@ -72,7 +91,7 @@ const resizeProcessor = async (
         filename: `${file.filename}-resized`,
         storageKey: generateToken(), // Placeholder for storage key if using external storage
         mimeType: file.mimeType,
-        url: outputPath,
+        url: outputUrl,
         size: info.size,
       },
     });
@@ -86,6 +105,7 @@ const resizeProcessor = async (
       data.userId,
       "COMPLETED",
       data.fileId,
+      data.webHookEndpointId,
       newFile.id,
     );
 
@@ -106,6 +126,7 @@ const resizeProcessor = async (
       data.userId,
       "FAILED",
       data.fileId,
+      data.webHookEndpointId,
       undefined,
       (err as Error).message,
     );
@@ -188,6 +209,7 @@ async function sendWebhookNotification(
   userId: string,
   status: "COMPLETED" | "FAILED",
   inputFileId: string,
+  webhookEndpointId: string,
   outputFileId?: string,
   errorMessage?: string,
 ) {
@@ -198,6 +220,7 @@ async function sendWebhookNotification(
           type: "image.resize",
           jobId,
           userId,
+          webHookEndpointId: webhookEndpointId,
           status,
           result: {
             inputFileId,
@@ -209,6 +232,7 @@ async function sendWebhookNotification(
           type: "image.resize",
           jobId,
           userId,
+          webHookEndpointId: webhookEndpointId,
           status,
           error: {
             message: errorMessage || "Unknown error",

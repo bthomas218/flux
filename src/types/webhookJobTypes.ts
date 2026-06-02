@@ -7,6 +7,7 @@ export type WebhookJobPayload =
       type: ImageJobNames;
       jobId: string;
       userId: string;
+      webHookEndpointId: string;
       status: "COMPLETED";
       result: {
         inputFileId: string;
@@ -18,6 +19,7 @@ export type WebhookJobPayload =
       type: ImageJobNames;
       userId: string;
       jobId: string;
+      webHookEndpointId: string;
       status: "FAILED";
       error: {
         message: string;

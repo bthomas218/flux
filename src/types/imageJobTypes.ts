@@ -7,6 +7,7 @@ export type ImageResizePayload = {
   type: "image.resize";
   fileId: string;
   userId: string;
+  webHookEndpointId: string;
   options: {
     width?: number;
     height?: number;
@@ -18,6 +19,7 @@ export type ImageTranscodePayload = {
   type: "image.transcode";
   fileId: string;
   userId: string;
+  webHookEndpointId: string;
   options: {
     format: "jpeg" | "png" | "webp" | "avif";
     quality?: number;
@@ -28,6 +30,7 @@ export type ImageAltTextPayload = {
   type: "image.alttext";
   fileId: string;
   userId: string;
+  webHookEndpointId: string;
   options?: Record<string, never>;
 };
 

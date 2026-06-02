@@ -13,7 +13,6 @@ const envSchema = z.object({
   TOKEN_HASH_SECRET: z.string().min(1),
   JWT_SECRET: z.string().min(1),
   REDIS_URL: z.url().optional(),
-  WEBHOOK_URL: z.url().optional(), //This is temporary for testing the webhook worker, in a real application this would be set by the user and stored encrypted in the database, then decrypted by the worker when sending the webhook notification
 });
 
 const parsed = envSchema.safeParse(process.env);

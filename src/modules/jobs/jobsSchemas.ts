@@ -17,6 +17,7 @@ const jobStatusSchema = z.enum([
 const imageResizeBodySchema = z.object({
   type: z.literal("image.resize"),
   fileId: z.string().min(1),
+  webHookEndpointId: z.string().min(1),
   options: z.object({
     width: z.number().optional(),
     height: z.number().optional(),
@@ -27,6 +28,7 @@ const imageResizeBodySchema = z.object({
 const imageTranscodeBodySchema = z.object({
   type: z.literal("image.transcode"),
   fileId: z.string().min(1),
+  webHookEndpointId: z.string().min(1),
   options: z.object({
     format: z.enum(["jpeg", "png", "webp", "avif"]),
     quality: z.number().optional(),
@@ -36,6 +38,7 @@ const imageTranscodeBodySchema = z.object({
 const imageAltTextBodySchema = z.object({
   type: z.literal("image.alttext"),
   fileId: z.string().min(1),
+  webHookEndpointId: z.string().min(1),
   options: z.object({}).optional(),
 });
 

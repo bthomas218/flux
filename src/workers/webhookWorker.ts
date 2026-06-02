@@ -15,18 +15,23 @@ const connection = cfg.redis;
 const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
   "webhook",
   async (job) => {
-    const encryptedWebhookSecret = await prisma.user.findUnique({
+    const webhookEndpoint = await prisma.webhookEndpoint.findUnique({
       where: {
-        id: job.data.userId,
+        id: job.data.webHookEndpointId,
       },
       select: {
-        webhookSecret: true,
+        secret: true,
       },
     });
 
-    const [iv, data, tag] = (encryptedWebhookSecret?.webhookSecret || "").split(
-      ":",
-    );
+    if (!webhookEndpoint) {
+      console.log(
+        `Webhook endpoint not found for id ${job.data.webHookEndpointId}`,
+      );
+      throw new Error("Webhook endpoint not found");
+    }
+
+    const [iv, data, tag] = (webhookEndpoint?.secret || "").split(":");
 
     if (!iv || !data || !tag) {
       console.log(`Invalid webhook secret for user ${job.data.userId}`);
@@ -35,14 +40,19 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
 
     const webhookSecret = await decrypt(cfg.ENCRYPTION_KEY, iv, data, tag);
 
-    const endpoints = await prisma.$queryRaw<WebhookEndpointRecord[]>`
-      SELECT "url"
-      FROM "WebhookEndpoint"
-      WHERE "userId" = ${job.data.userId}
-    `;
+    const endpoints = await prisma.webhookEndpoint.findMany({
+      where: {
+        userId: job.data.userId,
+      },
+      select: {
+        url: true,
+      },
+    });
 
     if (endpoints.length === 0) {
-      console.log(`No webhook endpoints configured for user ${job.data.userId}`);
+      console.log(
+        `No webhook endpoints configured for user ${job.data.userId}`,
+      );
       return;
     }
 
