@@ -1,45 +1,62 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes } from "crypto";
 import { NotFoundError } from "../../errors.js";
+import { encrypt, generateSecretKey } from "../../lib/crypto.js";
 import { prisma } from "../../lib/prisma.js";
-
-type WebhookEndpointRecord = {
-  id: string;
-  url: string;
-  createdAt: Date;
-};
+import { cfg } from "../../cfg.js";
 
 export async function createWebhookEndpoint(userId: string, url: string) {
-  const id = randomUUID();
-  const [record] = await prisma.$queryRaw<WebhookEndpointRecord[]>`
-    INSERT INTO "WebhookEndpoint" ("id", "userId", "url")
-    VALUES (${id}, ${userId}, ${url})
-    RETURNING "id", "url", "createdAt"
-  `;
+  const secretKey = generateSecretKey();
 
-  if (!record) {
-    throw new Error("Unable to create webhook endpoint");
-  }
+  const { iv, tag, content } = await encrypt(
+    cfg.ENCRYPTION_KEY,
+    randomBytes(12).toString("hex"),
+    secretKey,
+  );
 
-  return record;
+  const webhookEndpoint = await prisma.webhookEndpoint.create({
+    data: {
+      userId,
+      url,
+      secret: `${iv}:${content}:${tag}`,
+    },
+    select: {
+      id: true,
+      url: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    ...webhookEndpoint,
+    secret: secretKey,
+  };
 }
 
 export async function listWebhookEndpoints(userId: string) {
-  return prisma.$queryRaw<WebhookEndpointRecord[]>`
-    SELECT "id", "url", "createdAt"
-    FROM "WebhookEndpoint"
-    WHERE "userId" = ${userId}
-    ORDER BY "createdAt" DESC
-  `;
+  return prisma.webhookEndpoint.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      url: true,
+      createdAt: true,
+    },
+  });
 }
 
 export async function deleteWebhookEndpoint(userId: string, id: string) {
-  const result = await prisma.$queryRaw<{ id: string }[]>`
-    DELETE FROM "WebhookEndpoint"
-    WHERE "id" = ${id} AND "userId" = ${userId}
-    RETURNING "id"
-  `;
+  const result = await prisma.webhookEndpoint.deleteMany({
+    where: {
+      id,
+      userId,
+    },
+  });
 
-  if (result.length === 0) {
+  if (result.count === 0) {
     throw new NotFoundError("Webhook endpoint not found");
   }
 

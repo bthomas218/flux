@@ -19,9 +19,21 @@ model User {
   apiKeys ApiKey[]
   jobs Job[]
   files File[]
+  webhookEndpoints WebhookEndpoint[]
   webhookSecret   String
 
   createdAt       DateTime @default(now())
+}
+
+model WebhookEndpoint {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id])
+
+  url String
+  secret String
+
+  createdAt DateTime @default(now())
 }
 
 model ApiKey {

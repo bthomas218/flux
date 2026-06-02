@@ -10,8 +10,12 @@ export const createWebhookEndpointBodySchema = z.object({
   url: z.url(),
 });
 
-export const createWebhookEndpointResponseSchema =
-  webhookEndpointMetadataSchema;
+export const createWebhookEndpointResponseSchema = z.object({
+  id: z.string(),
+  url: z.url(),
+  createdAt: z.date(),
+  secret: z.string(), //Sent only once on creation
+});
 
 export const listWebhookEndpointsResponseSchema = z.array(
   webhookEndpointMetadataSchema,

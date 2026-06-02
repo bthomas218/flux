@@ -25,7 +25,7 @@ export async function webhookEndpointRoutes(app: FastifyInstance) {
   });
 
   app.withTypeProvider<ZodTypeProvider>().post(
-    "/webhook-endpoints",
+    "/webhooks",
     {
       schema: {
         body: createWebhookEndpointBodySchema,
@@ -38,7 +38,7 @@ export async function webhookEndpointRoutes(app: FastifyInstance) {
   );
 
   app.withTypeProvider<ZodTypeProvider>().get(
-    "/webhook-endpoints",
+    "/webhooks",
     {
       schema: {
         response: {
@@ -50,7 +50,7 @@ export async function webhookEndpointRoutes(app: FastifyInstance) {
   );
 
   app.withTypeProvider<ZodTypeProvider>().delete(
-    "/webhook-endpoints/:id",
+    "/webhooks/:id",
     {
       schema: {
         params: deleteWebhookEndpointParamsSchema,
