@@ -20,7 +20,6 @@ model User {
   jobs Job[]
   files File[]
   webhookEndpoints WebhookEndpoint[]
-  webhookSecret   String
 
   createdAt       DateTime @default(now())
 }

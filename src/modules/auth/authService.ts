@@ -57,18 +57,9 @@ export async function verifyMagicLinkToken(token: string) {
   });
 
   if (!user) {
-    const secretKey = generateSecretKey();
-
-    const { iv, tag, content } = await encrypt(
-      cfg.ENCRYPTION_KEY,
-      randomBytes(12).toString("hex"),
-      secretKey,
-    );
-
     user = await prisma.user.create({
       data: {
         email: record.email,
-        webhookSecret: `${iv}:${content}:${tag}`,
       },
     });
   }
