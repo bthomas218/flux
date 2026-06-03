@@ -1,16 +1,7 @@
-import {
-  generateAPIKey,
-  generateSecretKey,
-  toHash,
-  encrypt,
-  generateToken,
-  toDeterministicHash,
-} from "../../lib/crypto.js";
+import { generateToken, toDeterministicHash } from "../../lib/crypto.js";
 import { prisma } from "../../lib/prisma.js";
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
-import { ConflictError, UnauthorizedError } from "../../errors.js";
+import { UnauthorizedError } from "../../errors.js";
 import { cfg } from "../../cfg.js";
-import { randomBytes } from "node:crypto";
 
 export async function sendMagicLink(email: string) {
   const token = generateToken();

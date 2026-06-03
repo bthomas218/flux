@@ -6,13 +6,10 @@ import type {
   ImageJobNames,
   ImageJobPayload,
   ImageResultPayLoad,
-  ImageTranscodePayload,
   ImageAltTextPayload,
 } from "../types/imageJobTypes.js";
-import resizeProcessor, {
-  sendWebhookNotification,
-  updateJobStatus,
-} from "./processors/image/resizeProcessor.js";
+import resizeProcessor from "./processors/image/resizeProcessor.js";
+import transcodeProcessor from "./processors/image/transcodeProcessor.js";
 
 const mediaWorker = new Worker<
   ImageJobPayload,
@@ -25,7 +22,7 @@ const mediaWorker = new Worker<
       case "image.resize":
         return await resizeProcessor(job.data, job.id!);
       case "image.transcode":
-        return await transcodeProcessor(job.data);
+        return await transcodeProcessor(job.data, job.id!);
       case "image.alttext":
         return await altTextProcessor(job.data);
       default:
@@ -34,46 +31,6 @@ const mediaWorker = new Worker<
   },
   { connection },
 );
-
-mediaWorker.on("failed", async (job, err) => {
-  if (!job?.id) {
-    return;
-  }
-
-  const maxAttempts = job.opts.attempts ?? 1;
-
-  if (job.attemptsMade < maxAttempts) {
-    return;
-  }
-
-  await updateJobStatus(job.id, "FAILED");
-  await sendWebhookNotification(
-    job.id,
-    job.data.userId,
-    "FAILED",
-    job.data.fileId,
-    job.data.webHookEndpointId,
-    undefined,
-    err.message,
-    job.data.type,
-  );
-});
-
-// TODO: Implement the logic for image transcode job
-const transcodeProcessor = async (
-  data: ImageTranscodePayload,
-): Promise<ImageResultPayLoad> => {
-  return {
-    type: "image.transcode",
-    output: {
-      fileId: data.fileId,
-      storageKey: "fake-storage-key",
-      mimeType: "image/jpeg",
-      width: 100,
-      height: 100,
-    },
-  };
-};
 
 // Implement the logic for image alt text job
 const altTextProcessor = async (
