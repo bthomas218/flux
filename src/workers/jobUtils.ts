@@ -1,5 +1,8 @@
 import { prisma } from "../lib/prisma.js";
-import { webhookQueue } from "../queues/webhookQueue.js";
+import {
+  MAX_WEBHOOK_JOB_RETRY_ATTEMPTS,
+  webhookQueue,
+} from "../queues/webhookQueue.js";
 import type { WebhookJobPayload } from "../types/webhookJobTypes.js";
 import type { ImageJobNames } from "../types/imageJobTypes.js";
 
@@ -75,6 +78,13 @@ async function sendWebhookNotification(
   await webhookQueue.add(
     status === "COMPLETED" ? "job.completed" : "job.failed",
     payload as WebhookJobPayload,
+    {
+      attempts: MAX_WEBHOOK_JOB_RETRY_ATTEMPTS,
+      backoff: {
+        type: "exponential",
+        delay: 2000,
+      },
+    },
   );
 }
 

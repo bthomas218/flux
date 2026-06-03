@@ -8,7 +8,7 @@ import type {
 
 const connection = cfg.redis;
 
-export const MAX_JOB_RETRY_ATTEMPTS = 3;
+export const MAX_MEDIA_JOB_RETRY_ATTEMPTS = 3;
 
 export const mediaQueue = new Queue<
   ImageJobPayload,

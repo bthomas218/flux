@@ -10,7 +10,7 @@ import type {
   ListJobsReply,
 } from "./jobsSchemas.js";
 import {
-  MAX_JOB_RETRY_ATTEMPTS,
+  MAX_MEDIA_JOB_RETRY_ATTEMPTS,
   mediaQueue,
 } from "../../queues/mediaQueue.js";
 
@@ -95,7 +95,11 @@ export async function createJob(
     { ...queuePayload, userId },
     {
       jobId: job.id,
-      attempts: MAX_JOB_RETRY_ATTEMPTS,
+      attempts: MAX_MEDIA_JOB_RETRY_ATTEMPTS,
+      backoff: {
+        type: "exponentional",
+        delay: 2000,
+      },
     },
   );
 

@@ -37,6 +37,10 @@ mediaWorker.on("failed", async (job, err) => {
     return;
   }
 
+  console.log(
+    `Media job ${job?.id} failed attempt ${job?.attemptsMade}/${job?.opts.attempts}: ${err.message}`,
+  );
+
   const maxAttempts = job.opts.attempts ?? 1;
 
   if (job.attemptsMade < maxAttempts) {
@@ -55,6 +59,10 @@ mediaWorker.on("failed", async (job, err) => {
     undefined,
     err.message,
   );
+});
+
+mediaWorker.on("completed", (job) => {
+  console.log(`Media job ${job.id} completed`);
 });
 
 // Implement the logic for image alt text job

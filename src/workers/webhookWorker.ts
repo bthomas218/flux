@@ -7,10 +7,6 @@ import type {
 import { prisma } from "../lib/prisma.js";
 import { decrypt } from "../lib/crypto.js";
 
-type WebhookEndpointRecord = {
-  url: string;
-};
-
 const connection = cfg.redis;
 const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
   "webhook",
@@ -21,6 +17,7 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
       },
       select: {
         secret: true,
+        url: true,
       },
     });
 
@@ -31,7 +28,9 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
       throw new Error("Webhook endpoint not found");
     }
 
-    const [iv, data, tag] = (webhookEndpoint?.secret || "").split(":");
+    const { url, secret } = webhookEndpoint;
+
+    const [iv, data, tag] = secret.split(":");
 
     if (!iv || !data || !tag) {
       console.log(`Invalid webhook secret for user ${job.data.userId}`);
@@ -40,57 +39,36 @@ const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(
 
     const webhookSecret = await decrypt(cfg.ENCRYPTION_KEY, iv, data, tag);
 
-    const endpoints = await prisma.webhookEndpoint.findMany({
-      where: {
-        userId: job.data.userId,
-      },
-      select: {
-        url: true,
-      },
-    });
+    const res = await sendWebhookPayload(url, webhookSecret, job.data);
 
-    if (endpoints.length === 0) {
-      console.log(
-        `No webhook endpoints configured for user ${job.data.userId}`,
-      );
-      return;
-    }
-
-    switch (job.data.event) {
-      case "job.completed":
-        console.log(
-          `Webhook: Job completed for jobId ${job.data.jobId}, type ${job.data.type}`,
-        );
-        await sendWebhookPayload(endpoints, webhookSecret, job.data);
-        break;
-      case "job.failed":
-        console.log(
-          `Webhook: Job failed for jobId ${job.data.jobId}, type ${job.data.type}, error: ${job.data.error.message}`,
-        );
-        await sendWebhookPayload(endpoints, webhookSecret, job.data);
-        break;
-      default:
-        throw new Error(`Unknown webhook event`);
+    if (!res.ok) {
+      throw new Error(`Webhook failed with ${res.status}`);
     }
   },
   { connection },
 );
 
+webhookWorker.on("failed", (job, err) => {
+  console.log(
+    `Webhook job ${job?.id} failed attempt ${job?.attemptsMade}/${job?.opts.attempts}: ${err.message}`,
+  );
+});
+
+webhookWorker.on("completed", (job) => {
+  console.log(`Webhook job ${job.id} completed`);
+});
+
 async function sendWebhookPayload(
-  endpoints: WebhookEndpointRecord[],
+  url: string,
   webhookSecret: string,
   payload: WebhookJobPayload,
 ) {
-  await Promise.all(
-    endpoints.map((endpoint) =>
-      fetch(endpoint.url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Webhook-Secret": webhookSecret,
-        },
-        body: JSON.stringify(payload),
-      }),
-    ),
-  );
+  return await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Webhook-Secret": webhookSecret,
+    },
+    body: JSON.stringify(payload),
+  });
 }

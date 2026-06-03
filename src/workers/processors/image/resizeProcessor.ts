@@ -62,7 +62,6 @@ const resizeProcessor = async (
     );
     const outputUrl = path.join(outputDir, path.basename(outputPath));
 
-    console.log("Image resized successfully");
     const newFile = await prisma.file.create({
       data: {
         userId: file.userId,
@@ -75,8 +74,6 @@ const resizeProcessor = async (
     });
 
     await updateJobStatus(jobId, "COMPLETED", newFile.id);
-
-    console.log(`Resize job completed for fileId: ${data.fileId}`);
 
     await sendWebhookNotification(
       jobId,
