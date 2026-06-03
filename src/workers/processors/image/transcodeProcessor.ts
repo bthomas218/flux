@@ -4,12 +4,11 @@ import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { generateToken } from "../../../lib/crypto.js";
 import { prisma } from "../../../lib/prisma.js";
-import { webhookQueue } from "../../../queues/webhookQueue.js";
 import type {
   ImageResultPayLoad,
   ImageTranscodePayload,
 } from "../../../types/imageJobTypes.js";
-import type { WebhookJobPayload } from "../../../types/webhookJobTypes.js";
+import { sendWebhookNotification, updateJobStatus } from "../../jobUtils.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -42,13 +41,6 @@ const transcodeProcessor = async (
   });
 
   if (!file) {
-    await failJob(
-      jobId,
-      data.userId,
-      data.fileId,
-      data.webHookEndpointId,
-      "File not found",
-    );
     throw new Error("File not found");
   }
 
@@ -58,13 +50,6 @@ const transcodeProcessor = async (
     await fs.promises.access(inputPath, fs.constants.F_OK);
   } catch (err) {
     console.log(`File not found on disk at path: ${inputPath}`);
-    await failJob(
-      jobId,
-      data.userId,
-      data.fileId,
-      data.webHookEndpointId,
-      "File not found on disk",
-    );
     throw new Error("File not found on disk");
   }
 
@@ -100,7 +85,9 @@ const transcodeProcessor = async (
       "COMPLETED",
       data.fileId,
       data.webHookEndpointId,
+      "image.transcode",
       newFile.id,
+      undefined,
     );
 
     return {
@@ -115,68 +102,9 @@ const transcodeProcessor = async (
     };
   } catch (err) {
     const message = (err as Error).message;
-    await failJob(
-      jobId,
-      data.userId,
-      data.fileId,
-      data.webHookEndpointId,
-      message,
-    );
     throw new Error(`Error processing image transcode job: ${message}`);
   }
 };
-
-async function updateJobStatus(
-  jobId: string,
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
-  newFileId?: string,
-) {
-  const now = new Date();
-
-  const data: {
-    status: typeof status;
-    outputFileId?: string;
-    startedAt?: Date;
-    finishedAt?: Date;
-  } = {
-    status,
-  };
-
-  if (status === "IN_PROGRESS") {
-    data.startedAt = now;
-  } else if (status === "COMPLETED") {
-    data.finishedAt = now;
-    data.outputFileId = newFileId;
-  } else if (status === "FAILED") {
-    data.finishedAt = now;
-  }
-
-  await prisma.job.update({
-    where: {
-      id: jobId,
-    },
-    data,
-  });
-}
-
-async function failJob(
-  jobId: string,
-  userId: string,
-  inputFileId: string,
-  webhookEndpointId: string,
-  errorMessage: string,
-) {
-  await updateJobStatus(jobId, "FAILED");
-  await sendWebhookNotification(
-    jobId,
-    userId,
-    "FAILED",
-    inputFileId,
-    webhookEndpointId,
-    undefined,
-    errorMessage,
-  );
-}
 
 async function transcodeImage(
   inputPath: string,
@@ -211,47 +139,6 @@ async function transcodeImage(
         outputPath,
       };
   }
-}
-
-async function sendWebhookNotification(
-  jobId: string,
-  userId: string,
-  status: "COMPLETED" | "FAILED",
-  inputFileId: string,
-  webhookEndpointId: string,
-  outputFileId?: string,
-  errorMessage?: string,
-) {
-  const payload =
-    status === "COMPLETED"
-      ? {
-          event: "job.completed",
-          type: "image.transcode",
-          jobId,
-          userId,
-          webHookEndpointId: webhookEndpointId,
-          status,
-          result: {
-            inputFileId,
-            outputFileId: outputFileId!,
-          },
-        }
-      : {
-          event: "job.failed",
-          type: "image.transcode",
-          jobId,
-          userId,
-          webHookEndpointId: webhookEndpointId,
-          status,
-          error: {
-            message: errorMessage || "Unknown error",
-          },
-        };
-
-  await webhookQueue.add(
-    status === "COMPLETED" ? "job.completed" : "job.failed",
-    payload as WebhookJobPayload,
-  );
 }
 
 export { transcodeProcessor };

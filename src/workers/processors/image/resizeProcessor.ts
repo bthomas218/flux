@@ -8,9 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { generateToken } from "../../../lib/crypto.js";
-import { webhookQueue } from "../../../queues/webhookQueue.js";
-import type { WebhookJobPayload } from "../../../types/webhookJobTypes.js";
-import type { ImageJobNames } from "../../../types/imageJobTypes.js";
+import { sendWebhookNotification, updateJobStatus } from "../../jobUtils.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -23,7 +21,6 @@ function resolveStoragePath(storedPath: string) {
     : path.resolve(projectRoot, storedPath);
 }
 
-// TODO: Implement the logic for image resize job
 const resizeProcessor = async (
   data: ImageResizePayload,
   jobId: string,
@@ -87,7 +84,9 @@ const resizeProcessor = async (
       "COMPLETED",
       data.fileId,
       data.webHookEndpointId,
+      "image.resize",
       newFile.id,
+      undefined,
     );
 
     return {
@@ -104,39 +103,6 @@ const resizeProcessor = async (
     throw new Error(`Error processing image resize job: ${err}`);
   }
 };
-
-async function updateJobStatus(
-  jobId: string,
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
-  newFileId?: string,
-) {
-  const now = new Date();
-
-  const data: {
-    status: typeof status;
-    outputFileId?: string;
-    startedAt?: Date;
-    finishedAt?: Date;
-  } = {
-    status,
-  };
-
-  if (status === "IN_PROGRESS") {
-    data.startedAt = now;
-  } else if (status === "COMPLETED") {
-    data.finishedAt = now;
-    data.outputFileId = newFileId;
-  } else if (status === "FAILED") {
-    data.finishedAt = now;
-  }
-
-  await prisma.job.update({
-    where: {
-      id: jobId,
-    },
-    data,
-  });
-}
 
 async function resizeImage(
   inputPath: string,
@@ -175,48 +141,6 @@ async function resizeImage(
   return { info, outputPath };
 }
 
-async function sendWebhookNotification(
-  jobId: string,
-  userId: string,
-  status: "COMPLETED" | "FAILED",
-  inputFileId: string,
-  webhookEndpointId: string,
-  outputFileId?: string,
-  errorMessage?: string,
-  jobType: ImageJobNames = "image.resize",
-) {
-  const payload =
-    status === "COMPLETED"
-      ? {
-          event: "job.completed",
-          type: jobType,
-          jobId,
-          userId,
-          webHookEndpointId: webhookEndpointId,
-          status,
-          result: {
-            inputFileId,
-            outputFileId: outputFileId!,
-          },
-        }
-      : {
-          event: "job.failed",
-          type: jobType,
-          jobId,
-          userId,
-          webHookEndpointId: webhookEndpointId,
-          status,
-          error: {
-            message: errorMessage || "Unknown error",
-          },
-        };
-
-  await webhookQueue.add(
-    status === "COMPLETED" ? "job.completed" : "job.failed",
-    payload as WebhookJobPayload,
-  );
-}
-
-export { resizeProcessor, sendWebhookNotification, updateJobStatus };
+export { resizeProcessor };
 
 export default resizeProcessor;

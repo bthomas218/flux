@@ -10,6 +10,7 @@ import type {
 } from "../types/imageJobTypes.js";
 import resizeProcessor from "./processors/image/resizeProcessor.js";
 import transcodeProcessor from "./processors/image/transcodeProcessor.js";
+import { sendWebhookNotification, updateJobStatus } from "./jobUtils.js";
 
 const mediaWorker = new Worker<
   ImageJobPayload,
@@ -31,6 +32,30 @@ const mediaWorker = new Worker<
   },
   { connection },
 );
+mediaWorker.on("failed", async (job, err) => {
+  if (!job?.id) {
+    return;
+  }
+
+  const maxAttempts = job.opts.attempts ?? 1;
+
+  if (job.attemptsMade < maxAttempts) {
+    console.log(`Retrying job: ${job.id}`);
+    return;
+  }
+
+  await updateJobStatus(job.id, "FAILED");
+  await sendWebhookNotification(
+    job.id,
+    job.data.userId,
+    "FAILED",
+    job.data.fileId,
+    job.data.webHookEndpointId,
+    job.data.type,
+    undefined,
+    err.message,
+  );
+});
 
 // Implement the logic for image alt text job
 const altTextProcessor = async (

@@ -1,0 +1,81 @@
+import { prisma } from "../lib/prisma.js";
+import { webhookQueue } from "../queues/webhookQueue.js";
+import type { WebhookJobPayload } from "../types/webhookJobTypes.js";
+import type { ImageJobNames } from "../types/imageJobTypes.js";
+
+async function updateJobStatus(
+  jobId: string,
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+  newFileId?: string,
+) {
+  const now = new Date();
+
+  const data: {
+    status: typeof status;
+    outputFileId?: string;
+    startedAt?: Date;
+    finishedAt?: Date;
+  } = {
+    status,
+  };
+
+  if (status === "IN_PROGRESS") {
+    data.startedAt = now;
+  } else if (status === "COMPLETED") {
+    data.finishedAt = now;
+    data.outputFileId = newFileId;
+  } else if (status === "FAILED") {
+    data.finishedAt = now;
+  }
+
+  await prisma.job.update({
+    where: {
+      id: jobId,
+    },
+    data,
+  });
+}
+
+async function sendWebhookNotification(
+  jobId: string,
+  userId: string,
+  status: "COMPLETED" | "FAILED",
+  inputFileId: string,
+  webhookEndpointId: string,
+  jobType: ImageJobNames,
+  outputFileId?: string,
+  errorMessage?: string,
+) {
+  const payload =
+    status === "COMPLETED"
+      ? {
+          event: "job.completed",
+          type: jobType,
+          jobId,
+          userId,
+          webHookEndpointId: webhookEndpointId,
+          status,
+          result: {
+            inputFileId,
+            outputFileId: outputFileId!,
+          },
+        }
+      : {
+          event: "job.failed",
+          type: jobType,
+          jobId,
+          userId,
+          webHookEndpointId: webhookEndpointId,
+          status,
+          error: {
+            message: errorMessage || "Unknown error",
+          },
+        };
+
+  await webhookQueue.add(
+    status === "COMPLETED" ? "job.completed" : "job.failed",
+    payload as WebhookJobPayload,
+  );
+}
+
+export { sendWebhookNotification, updateJobStatus };
