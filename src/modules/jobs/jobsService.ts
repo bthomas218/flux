@@ -9,7 +9,10 @@ import type {
   GetJobReply,
   ListJobsReply,
 } from "./jobsSchemas.js";
-import { mediaQueue } from "../../queues/mediaQueue.js";
+import {
+  MAX_JOB_RETRY_ATTEMPTS,
+  mediaQueue,
+} from "../../queues/mediaQueue.js";
 
 export type JobRecord = {
   id: string;
@@ -92,6 +95,7 @@ export async function createJob(
     { ...queuePayload, userId },
     {
       jobId: job.id,
+      attempts: MAX_JOB_RETRY_ATTEMPTS,
     },
   );
 

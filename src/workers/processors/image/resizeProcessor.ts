@@ -10,6 +10,7 @@ import sharp from "sharp";
 import { generateToken } from "../../../lib/crypto.js";
 import { webhookQueue } from "../../../queues/webhookQueue.js";
 import type { WebhookJobPayload } from "../../../types/webhookJobTypes.js";
+import type { ImageJobNames } from "../../../types/imageJobTypes.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -36,16 +37,6 @@ const resizeProcessor = async (
   });
 
   if (!file) {
-    await updateJobStatus(jobId, "FAILED");
-    await sendWebhookNotification(
-      jobId,
-      data.userId,
-      "FAILED",
-      data.fileId,
-      data.webHookEndpointId,
-      undefined,
-      "File not found",
-    );
     throw new Error("File not found");
   }
 
@@ -55,16 +46,6 @@ const resizeProcessor = async (
     await fs.promises.access(inputPath, fs.constants.F_OK);
   } catch (err) {
     console.log(`File not found on disk at path: ${inputPath}`);
-    await updateJobStatus(jobId, "FAILED");
-    await sendWebhookNotification(
-      jobId,
-      data.userId,
-      "FAILED",
-      data.fileId,
-      data.webHookEndpointId,
-      undefined,
-      "File not found on disk",
-    );
     throw new Error("File not found on disk");
   }
 
@@ -120,16 +101,6 @@ const resizeProcessor = async (
       },
     };
   } catch (err) {
-    await updateJobStatus(jobId, "FAILED");
-    await sendWebhookNotification(
-      jobId,
-      data.userId,
-      "FAILED",
-      data.fileId,
-      data.webHookEndpointId,
-      undefined,
-      (err as Error).message,
-    );
     throw new Error(`Error processing image resize job: ${err}`);
   }
 };
@@ -212,12 +183,13 @@ async function sendWebhookNotification(
   webhookEndpointId: string,
   outputFileId?: string,
   errorMessage?: string,
+  jobType: ImageJobNames = "image.resize",
 ) {
   const payload =
     status === "COMPLETED"
       ? {
           event: "job.completed",
-          type: "image.resize",
+          type: jobType,
           jobId,
           userId,
           webHookEndpointId: webhookEndpointId,
@@ -229,7 +201,7 @@ async function sendWebhookNotification(
         }
       : {
           event: "job.failed",
-          type: "image.resize",
+          type: jobType,
           jobId,
           userId,
           webHookEndpointId: webhookEndpointId,
@@ -245,6 +217,6 @@ async function sendWebhookNotification(
   );
 }
 
-export { resizeProcessor, sendWebhookNotification };
+export { resizeProcessor, sendWebhookNotification, updateJobStatus };
 
 export default resizeProcessor;

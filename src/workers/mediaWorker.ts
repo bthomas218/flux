@@ -9,7 +9,10 @@ import type {
   ImageTranscodePayload,
   ImageAltTextPayload,
 } from "../types/imageJobTypes.js";
-import resizeProcessor from "./processors/image/resizeProcessor.js";
+import resizeProcessor, {
+  sendWebhookNotification,
+  updateJobStatus,
+} from "./processors/image/resizeProcessor.js";
 
 const mediaWorker = new Worker<
   ImageJobPayload,
@@ -31,6 +34,30 @@ const mediaWorker = new Worker<
   },
   { connection },
 );
+
+mediaWorker.on("failed", async (job, err) => {
+  if (!job?.id) {
+    return;
+  }
+
+  const maxAttempts = job.opts.attempts ?? 1;
+
+  if (job.attemptsMade < maxAttempts) {
+    return;
+  }
+
+  await updateJobStatus(job.id, "FAILED");
+  await sendWebhookNotification(
+    job.id,
+    job.data.userId,
+    "FAILED",
+    job.data.fileId,
+    job.data.webHookEndpointId,
+    undefined,
+    err.message,
+    job.data.type,
+  );
+});
 
 // TODO: Implement the logic for image transcode job
 const transcodeProcessor = async (
