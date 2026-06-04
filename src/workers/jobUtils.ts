@@ -2,8 +2,8 @@ import { prisma } from "../lib/prisma.js";
 import {
   MAX_WEBHOOK_JOB_RETRY_ATTEMPTS,
   webhookQueue,
-} from "../queues/webhookQueue.js";
-import type { WebhookJobPayload } from "../types/webhookJobTypes.js";
+} from "../modules/webhookEndpoints/webhookQueue.js";
+import type { WebhookJobPayload } from "../modules/webhookEndpoints/types.js";
 import type {
   ImageJobNames,
   ImageResultPayLoad,

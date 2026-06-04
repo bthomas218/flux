@@ -1,11 +1,8 @@
 import { Worker } from "bullmq";
-import { cfg } from "../cfg.js";
-import type {
-  WebhookJobPayload,
-  WebhookJobNames,
-} from "../types/webhookJobTypes.js";
-import { prisma } from "../lib/prisma.js";
-import { decrypt } from "../lib/crypto.js";
+import { cfg } from "../../cfg.js";
+import type { WebhookJobPayload, WebhookJobNames } from "./types.js";
+import { prisma } from "../../lib/prisma.js";
+import { decrypt } from "../../lib/crypto.js";
 
 const connection = cfg.redis;
 const webhookWorker = new Worker<WebhookJobPayload, void, WebhookJobNames>(

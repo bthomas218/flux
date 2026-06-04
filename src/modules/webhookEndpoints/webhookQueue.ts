@@ -1,10 +1,7 @@
 import { Queue } from "bullmq";
-import { cfg } from "../cfg.js";
+import { cfg } from "../../cfg.js";
 
-import type {
-  WebhookJobPayload,
-  WebhookJobNames,
-} from "../types/webhookJobTypes.js";
+import type { WebhookJobPayload, WebhookJobNames } from "./types.js";
 
 const connection = cfg.redis;
 
