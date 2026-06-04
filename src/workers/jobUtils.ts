@@ -4,7 +4,10 @@ import {
   webhookQueue,
 } from "../queues/webhookQueue.js";
 import type { WebhookJobPayload } from "../types/webhookJobTypes.js";
-import type { ImageJobNames } from "../types/imageJobTypes.js";
+import type {
+  ImageJobNames,
+  ImageResultPayLoad,
+} from "../types/imageJobTypes.js";
 
 async function updateJobStatus(
   jobId: string,
@@ -46,22 +49,18 @@ async function sendWebhookNotification(
   inputFileId: string,
   webhookEndpointId: string,
   jobType: ImageJobNames,
-  outputFileId?: string,
+  result?: ImageResultPayLoad,
   errorMessage?: string,
 ) {
   const payload =
     status === "COMPLETED"
       ? {
           event: "job.completed",
-          type: jobType,
           jobId,
           userId,
           webHookEndpointId: webhookEndpointId,
           status,
-          result: {
-            inputFileId,
-            outputFileId: outputFileId!,
-          },
+          result,
         }
       : {
           event: "job.failed",

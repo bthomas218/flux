@@ -97,7 +97,7 @@ export async function createJob(
       jobId: job.id,
       attempts: MAX_MEDIA_JOB_RETRY_ATTEMPTS,
       backoff: {
-        type: "exponentional",
+        type: "exponential",
         delay: 2000,
       },
     },

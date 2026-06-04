@@ -79,16 +79,6 @@ const transcodeProcessor = async (
     });
 
     await updateJobStatus(jobId, "COMPLETED", newFile.id);
-    await sendWebhookNotification(
-      jobId,
-      data.userId,
-      "COMPLETED",
-      data.fileId,
-      data.webHookEndpointId,
-      "image.transcode",
-      newFile.id,
-      undefined,
-    );
 
     return {
       type: "image.transcode",

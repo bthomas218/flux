@@ -61,8 +61,22 @@ mediaWorker.on("failed", async (job, err) => {
   );
 });
 
-mediaWorker.on("completed", (job) => {
+mediaWorker.on("completed", async (job, result) => {
+  if (!job?.id) {
+    return;
+  }
+
   console.log(`Media job ${job.id} completed`);
+  await sendWebhookNotification(
+    job.id,
+    job.data.userId,
+    "COMPLETED",
+    job.data.fileId,
+    job.data.webHookEndpointId,
+    job.data.type,
+    result,
+    undefined,
+  );
 });
 
 // Implement the logic for image alt text job

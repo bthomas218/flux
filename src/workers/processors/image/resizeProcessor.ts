@@ -75,17 +75,6 @@ const resizeProcessor = async (
 
     await updateJobStatus(jobId, "COMPLETED", newFile.id);
 
-    await sendWebhookNotification(
-      jobId,
-      data.userId,
-      "COMPLETED",
-      data.fileId,
-      data.webHookEndpointId,
-      "image.resize",
-      newFile.id,
-      undefined,
-    );
-
     return {
       type: "image.resize",
       output: {
