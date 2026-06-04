@@ -1,10 +1,10 @@
 import { Queue } from "bullmq";
-import { cfg } from "../cfg.js";
+import { cfg } from "../../cfg.js";
 import type {
   ImageJobNames,
   ImageJobPayload,
   ImageResultPayLoad,
-} from "../types/imageJobTypes.js";
+} from "./types.js";
 
 const connection = cfg.redis;
 

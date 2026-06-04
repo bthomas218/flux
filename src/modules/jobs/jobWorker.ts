@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { cfg } from "../cfg.js";
+import { cfg } from "../../cfg.js";
 
 const connection = cfg.redis;
 import type {
@@ -7,10 +7,13 @@ import type {
   ImageJobPayload,
   ImageResultPayLoad,
   ImageAltTextPayload,
-} from "../types/imageJobTypes.js";
+} from "./types.js";
 import resizeProcessor from "./processors/image/resizeProcessor.js";
 import transcodeProcessor from "./processors/image/transcodeProcessor.js";
-import { sendWebhookNotification, updateJobStatus } from "./jobUtils.js";
+import {
+  sendWebhookNotification,
+  updateJobStatus,
+} from "../../workers/jobUtils.js";
 
 const mediaWorker = new Worker<
   ImageJobPayload,

@@ -1,14 +1,14 @@
-import type {
-  ImageResizePayload,
-  ImageResultPayLoad,
-} from "../../../types/imageJobTypes.js";
-import { prisma } from "../../../lib/prisma.js";
+import type { ImageResizePayload, ImageResultPayLoad } from "../../types.js";
+import { prisma } from "../../../../lib/prisma.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { generateToken } from "../../../lib/crypto.js";
-import { sendWebhookNotification, updateJobStatus } from "../../jobUtils.js";
+import { generateToken } from "../../../../lib/crypto.js";
+import {
+  sendWebhookNotification,
+  updateJobStatus,
+} from "../../../../workers/jobUtils.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

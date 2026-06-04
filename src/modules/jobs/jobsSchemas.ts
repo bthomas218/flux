@@ -1,5 +1,5 @@
 import z from "zod";
-import type { ImageJobPayload } from "../../types/imageJobTypes.js";
+import type { ImageJobPayload } from "./types.js";
 
 const jobTypeSchema = z.enum([
   "image.resize",

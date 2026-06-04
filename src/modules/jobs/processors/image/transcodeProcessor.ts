@@ -2,13 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import { generateToken } from "../../../lib/crypto.js";
-import { prisma } from "../../../lib/prisma.js";
+import { generateToken } from "../../../../lib/crypto.js";
+import { prisma } from "../../../../lib/prisma.js";
 import type {
   ImageResultPayLoad,
   ImageTranscodePayload,
-} from "../../../types/imageJobTypes.js";
-import { sendWebhookNotification, updateJobStatus } from "../../jobUtils.js";
+} from "../../../../modules/jobs/types.js";
+import {
+  sendWebhookNotification,
+  updateJobStatus,
+} from "../../../../workers/jobUtils.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

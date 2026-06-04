@@ -9,10 +9,7 @@ import type {
   GetJobReply,
   ListJobsReply,
 } from "./jobsSchemas.js";
-import {
-  MAX_MEDIA_JOB_RETRY_ATTEMPTS,
-  mediaQueue,
-} from "../../queues/mediaQueue.js";
+import { MAX_MEDIA_JOB_RETRY_ATTEMPTS, mediaQueue } from "./jobQueue.js";
 
 export type JobRecord = {
   id: string;

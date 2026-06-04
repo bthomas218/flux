@@ -7,7 +7,7 @@ import type { WebhookJobPayload } from "../types/webhookJobTypes.js";
 import type {
   ImageJobNames,
   ImageResultPayLoad,
-} from "../types/imageJobTypes.js";
+} from "../modules/jobs/types.js";
 
 async function updateJobStatus(
   jobId: string,
