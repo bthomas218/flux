@@ -2,6 +2,7 @@ import { BadRequestError, ConflictError, NotFoundError } from "../../errors.js";
 import fs from "node:fs";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { prisma } from "../../lib/prisma.js";
 import { generateToken } from "../../lib/crypto.js";
 
@@ -14,6 +15,26 @@ const allowedMimeTypes = [
 ];
 
 const allowedExtensions = ["jpg", "jpeg", "png", "webp", "avif"];
+
+const projectRoot = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../..",
+);
+
+export function resolveStoragePath(storedPath: string) {
+  return path.isAbsolute(storedPath)
+    ? storedPath
+    : path.resolve(projectRoot, storedPath);
+}
+
+export async function ensureFileExists(filePath: string) {
+  try {
+    await fs.promises.access(filePath, fs.constants.F_OK);
+  } catch (err) {
+    console.log(`File not found on disk at path: ${filePath}`);
+    throw new Error("File not found on disk");
+  }
+}
 
 export async function uploadFile(
   userId: string,

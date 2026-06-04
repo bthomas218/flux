@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { generateToken } from "../../../../lib/crypto.js";
 import { prisma } from "../../../../lib/prisma.js";
@@ -9,11 +8,10 @@ import type {
   ImageTranscodePayload,
 } from "../../../../modules/jobs/types.js";
 import { updateJobStatus } from "../../jobsService.js";
-
-const projectRoot = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../../../..",
-);
+import {
+  resolveStoragePath,
+  ensureFileExists,
+} from "../../../files/filesService.js";
 
 const mimeTypes: Record<ImageTranscodePayload["options"]["format"], string> = {
   jpeg: "image/jpeg",
@@ -21,12 +19,6 @@ const mimeTypes: Record<ImageTranscodePayload["options"]["format"], string> = {
   webp: "image/webp",
   avif: "image/avif",
 };
-
-function resolveStoragePath(storedPath: string) {
-  return path.isAbsolute(storedPath)
-    ? storedPath
-    : path.resolve(projectRoot, storedPath);
-}
 
 const transcodeProcessor = async (
   data: ImageTranscodePayload,
@@ -46,12 +38,7 @@ const transcodeProcessor = async (
 
   const inputPath = resolveStoragePath(file.url);
 
-  try {
-    await fs.promises.access(inputPath, fs.constants.F_OK);
-  } catch (err) {
-    console.log(`File not found on disk at path: ${inputPath}`);
-    throw new Error("File not found on disk");
-  }
+  await ensureFileExists(inputPath);
 
   try {
     const outputDir = path.join("outputs", file.userId, jobId);
