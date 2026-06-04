@@ -10,7 +10,7 @@ import type {
 } from "./types.js";
 import resizeProcessor from "./processors/image/resizeProcessor.js";
 import transcodeProcessor from "./processors/image/transcodeProcessor.js";
-import { sendWebhookNotification } from "../../workers/jobUtils.js";
+import { sendWebhookNotification } from "../webhookEndpoints/webhookEndpointService.js";
 import { updateJobStatus } from "./jobsService.js";
 
 const mediaWorker = new Worker<
