@@ -8,10 +8,7 @@ import type {
   ImageResultPayLoad,
   ImageTranscodePayload,
 } from "../../../../modules/jobs/types.js";
-import {
-  sendWebhookNotification,
-  updateJobStatus,
-} from "../../../../workers/jobUtils.js";
+import { updateJobStatus } from "../../jobsService.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

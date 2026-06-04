@@ -5,10 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 import { generateToken } from "../../../../lib/crypto.js";
-import {
-  sendWebhookNotification,
-  updateJobStatus,
-} from "../../../../workers/jobUtils.js";
+import { updateJobStatus } from "../../jobsService.js";
 
 const projectRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),

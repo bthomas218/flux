@@ -149,3 +149,36 @@ export async function listJobs(userId: string): Promise<ListJobsReply> {
 
   return jobs.map(toJobResponse);
 }
+
+export async function updateJobStatus(
+  jobId: string,
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+  newFileId?: string,
+) {
+  const now = new Date();
+
+  const data: {
+    status: typeof status;
+    outputFileId?: string;
+    startedAt?: Date;
+    finishedAt?: Date;
+  } = {
+    status,
+  };
+
+  if (status === "IN_PROGRESS") {
+    data.startedAt = now;
+  } else if (status === "COMPLETED") {
+    data.finishedAt = now;
+    data.outputFileId = newFileId;
+  } else if (status === "FAILED") {
+    data.finishedAt = now;
+  }
+
+  await prisma.job.update({
+    where: {
+      id: jobId,
+    },
+    data,
+  });
+}

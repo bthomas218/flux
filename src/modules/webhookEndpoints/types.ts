@@ -1,7 +1,4 @@
-import type {
-  ImageJobNames,
-  ImageResultPayLoad,
-} from "../modules/jobs/types.js";
+import type { ImageJobNames, ImageResultPayLoad } from "../jobs/types.js";
 export type WebhookJobNames = "job.completed" | "job.failed";
 
 export type WebhookJobPayload =
