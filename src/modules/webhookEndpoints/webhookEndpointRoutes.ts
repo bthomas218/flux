@@ -16,10 +16,6 @@ import {
 } from "./webhookEndpointSchemas.js";
 
 export async function webhookEndpointRoutes(app: FastifyInstance) {
-  app.register(fastifyJwt, {
-    secret: cfg.JWT_SECRET,
-  });
-
   app.addHook("preHandler", async (request) => {
     await request.jwtVerify();
   });

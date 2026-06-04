@@ -1,10 +1,10 @@
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
-import { cfg } from "../config/cfg.js";
+import { cfg, type Cfg } from "../config/cfg.js";
 
 declare module "fastify" {
   interface FastifyInstance {
-    cfg: typeof cfg;
+    cfg: Cfg;
   }
 }
 

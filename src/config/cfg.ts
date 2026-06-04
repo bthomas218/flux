@@ -2,7 +2,7 @@ import { z } from "zod";
 import "dotenv/config";
 import { Redis } from "ioredis";
 
-const envSchema = z.object({
+export const envSchema = z.object({
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -30,3 +30,5 @@ export const cfg = {
     ? new Redis(parsed.data.REDIS_URL, { maxRetriesPerRequest: null })
     : new Redis({ maxRetriesPerRequest: null }), // Default: localhost:6379,
 };
+
+export type Cfg = typeof cfg;

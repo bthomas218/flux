@@ -1,5 +1,4 @@
 import type { FastifyInstance } from "fastify";
-import { handleCallback, requestMagicLink } from "./authController.js";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
   magicLinkBodySchema,
@@ -7,14 +6,7 @@ import {
   callbackQuerySchema,
   callbackResponseSchema,
 } from "./authSchemas.js";
-import fastifyJwt from "@fastify/jwt";
-import { cfg } from "../../config/cfg.js";
-
 export async function authRoutes(app: FastifyInstance) {
-  app.register(fastifyJwt, {
-    secret: cfg.JWT_SECRET,
-  });
-
   app.withTypeProvider<ZodTypeProvider>().post(
     "/magic-link",
     {
@@ -25,7 +17,11 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    requestMagicLink,
+    async (req, res) => {
+      const { email } = req.body;
+      const magicLink = await app.authService.sendMagicLink(email);
+      res.send(magicLink);
+    },
   );
 
   app.withTypeProvider<ZodTypeProvider>().get(
@@ -38,6 +34,11 @@ export async function authRoutes(app: FastifyInstance) {
         },
       },
     },
-    handleCallback(app),
+    async (req, res) => {
+      const { token } = req.query;
+      const user = await app.authService.verifyMagicLinkToken(token);
+      const jwt = app.jwt.sign({ userId: user.id, email: user.email });
+      return { jwt };
+    },
   );
 }

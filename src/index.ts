@@ -1,17 +1,19 @@
 import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./config/cfg.js";
 import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
-import { authRoutes } from "./modules/auth/authRoutes.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
 import { filesRoutes } from "./modules/files/filesRouter.js";
 import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
 import configPlugin from "./plugins/config.js";
+import prismaPlugin from "./plugins/prisma.js";
 import {
   serializerCompiler,
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { prisma } from "./lib/prisma.js";
+import authPlugin from "./modules/auth/auth.plugin.js";
+import fastifyJwt from "@fastify/jwt";
 
 const app = Fastify({
   logger:
@@ -67,8 +69,13 @@ app.get("/health", async (request, reply) => {
     pgConnectionCheck,
   };
 });
-app.register(configPlugin);
-app.register(authRoutes, { prefix: "auth" });
+
+await app.register(configPlugin);
+app.register(fastifyJwt, {
+  secret: app.cfg.JWT_SECRET,
+});
+app.register(prismaPlugin);
+app.register(authPlugin);
 app.register(apiKeyRoutes);
 app.register(jobsRoutes);
 app.register(filesRoutes);
