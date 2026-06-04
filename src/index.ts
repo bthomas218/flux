@@ -1,10 +1,11 @@
 import Fastify, { type FastifyError } from "fastify";
-import { cfg } from "./cfg.js";
+import { cfg } from "./config/cfg.js";
 import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
 import { authRoutes } from "./modules/auth/authRoutes.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
 import { filesRoutes } from "./modules/files/filesRouter.js";
 import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
+import configPlugin from "./plugins/config.js";
 import {
   serializerCompiler,
   validatorCompiler,
@@ -66,6 +67,7 @@ app.get("/health", async (request, reply) => {
     pgConnectionCheck,
   };
 });
+app.register(configPlugin);
 app.register(authRoutes, { prefix: "auth" });
 app.register(apiKeyRoutes);
 app.register(jobsRoutes);

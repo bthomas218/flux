@@ -1,7 +1,7 @@
 import fastifyJwt from "@fastify/jwt";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 import {
   createWebhookEndpointHandler,
   deleteWebhookEndpointHandler,

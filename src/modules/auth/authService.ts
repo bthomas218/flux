@@ -1,7 +1,7 @@
 import { generateToken, toDeterministicHash } from "../../lib/crypto.js";
 import { prisma } from "../../lib/prisma.js";
 import { UnauthorizedError } from "../../errors.js";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 
 export async function sendMagicLink(email: string) {
   const token = generateToken();

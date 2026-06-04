@@ -2,7 +2,7 @@ import { randomBytes } from "crypto";
 import { NotFoundError } from "../../errors.js";
 import { encrypt, generateSecretKey } from "../../lib/crypto.js";
 import { prisma } from "../../lib/prisma.js";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 import type { ImageJobNames, ImageResultPayLoad } from "../jobs/types.js";
 import {
   webhookQueue,

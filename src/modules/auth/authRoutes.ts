@@ -8,7 +8,7 @@ import {
   callbackResponseSchema,
 } from "./authSchemas.js";
 import fastifyJwt from "@fastify/jwt";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 
 export async function authRoutes(app: FastifyInstance) {
   app.register(fastifyJwt, {

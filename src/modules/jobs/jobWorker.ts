@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 
 const connection = cfg.redis;
 import type {

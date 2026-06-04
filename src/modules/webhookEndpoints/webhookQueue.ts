@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 
 import type { WebhookJobPayload, WebhookJobNames } from "./types.js";
 

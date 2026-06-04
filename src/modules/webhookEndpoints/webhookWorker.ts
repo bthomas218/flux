@@ -1,5 +1,5 @@
 import { Worker } from "bullmq";
-import { cfg } from "../../cfg.js";
+import { cfg } from "../../config/cfg.js";
 import type { WebhookJobPayload, WebhookJobNames } from "./types.js";
 import { prisma } from "../../lib/prisma.js";
 import { decrypt } from "../../lib/crypto.js";
