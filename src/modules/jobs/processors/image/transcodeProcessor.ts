@@ -1,21 +1,19 @@
 import sharp from "sharp";
-import type { ImageTranscodePayload } from "../../types.js";
+import type { ProcessorOptions } from "../processor.js";
 
-async function transcodeProcessor(
-  file: Buffer,
-  opts?: {
-    format?: ImageTranscodePayload["options"]["format"];
-  },
+function transcodeProcessor(
+  file: NodeJS.ReadableStream,
+  opts?: ProcessorOptions,
 ) {
   switch (opts?.format) {
     case "jpeg":
-      return sharp(file).jpeg().toBuffer();
+      return file.pipe(sharp().jpeg({ quality: opts.quality }));
     case "png":
-      return sharp(file).png().toBuffer();
+      return file.pipe(sharp().png({ quality: opts.quality }));
     case "webp":
-      return sharp(file).webp().toBuffer();
+      return file.pipe(sharp().webp({ quality: opts.quality }));
     case "avif":
-      return sharp(file).avif().toBuffer();
+      return file.pipe(sharp().avif({ quality: opts.quality }));
     default:
       throw new Error("Unknown Format");
   }

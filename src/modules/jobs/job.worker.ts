@@ -1,6 +1,5 @@
 import { Worker } from "bullmq";
 import path from "node:path";
-import { Readable } from "node:stream";
 import sharp from "sharp";
 import { cfg } from "../../config/cfg.js";
 
@@ -56,18 +55,17 @@ const mediaWorker = new Worker<
       job.data.userId,
     );
     const sourceStream = await fileStorageService.read(sourceFile.url);
-    const sourceBuffer = await streamToBuffer(sourceStream);
-    const processed = await processor(sourceBuffer, job.data.options);
+    const processed = await processor(sourceStream, job.data.options);
 
     if (job.data.type === "image.alttext") {
-      const altText = Buffer.isBuffer(processed)
-        ? processed.toString("utf8")
-        : processed;
+      if (isReadableStream(processed)) {
+        throw new Error("Expected image.alttext processor to return text");
+      }
 
       const result: ImageResultPayLoad = {
         type: "image.alttext",
         output: {
-          altText,
+          altText: processed,
         },
       };
 
@@ -75,8 +73,8 @@ const mediaWorker = new Worker<
       return result;
     }
 
-    if (!Buffer.isBuffer(processed)) {
-      throw new Error(`Expected ${job.data.type} processor to return a buffer`);
+    if (!isReadableStream(processed)) {
+      throw new Error(`Expected ${job.data.type} processor to return a stream`);
     }
 
     const outputMimeType = getOutputMimeType(job.data, sourceFile.mimeType);
@@ -86,13 +84,11 @@ const mediaWorker = new Worker<
       outputMimeType,
     );
     const outputUrl = path.join(
-      "uploads",
-      `${job.data.userId}-${Date.now()}-${outputFilename}`,
+      "outputs",
+      `${job.data.userId}`,
+      `-${Date.now()}-${outputFilename}`,
     );
-    const outputSize = await fileStorageService.write(
-      outputUrl,
-      Readable.from(processed),
-    );
+    const outputSize = await fileStorageService.write(outputUrl, processed);
     const outputFile = await fileMetadataService.create({
       userId: job.data.userId,
       filename: outputFilename,
@@ -101,7 +97,8 @@ const mediaWorker = new Worker<
       storageKey: generateToken(),
       size: outputSize,
     });
-    const metadata = await sharp(processed).metadata();
+    const outputStream = await fileStorageService.read(outputUrl);
+    const metadata = await readImageMetadata(outputStream);
 
     await jobService.updateStatus(job.id, "COMPLETED", outputFile.id);
 
@@ -163,14 +160,24 @@ mediaWorker.on("completed", async (job, result) => {
   );
 });
 
-async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = [];
+function isReadableStream(value: unknown): value is NodeJS.ReadableStream {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "pipe" in value &&
+    typeof (value as { pipe?: unknown }).pipe === "function"
+  );
+}
 
-  for await (const chunk of stream) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
+async function readImageMetadata(stream: NodeJS.ReadableStream) {
+  return await new Promise<sharp.Metadata>((resolve, reject) => {
+    const image = sharp();
 
-  return Buffer.concat(chunks);
+    stream.on("error", reject);
+    image.on("error", reject);
+    image.metadata().then(resolve, reject);
+    stream.pipe(image);
+  });
 }
 
 function getOutputMimeType(

@@ -1,21 +1,28 @@
-import type { ImageJobNames, ImageResizePayload } from "../types.js";
+import type {
+  ImageJobNames,
+  ImageResizePayload,
+  ImageTranscodePayload,
+} from "../types.js";
 import resizeProcessor from "./image/resizeProcessor.js";
-import type { ImageTranscodePayload } from "../types.js";
 import transcodeProcessor from "./image/transcodeProcessor.js";
 
+export type ProcessorOptions = {
+  width?: number;
+  height?: number;
+  quality?: number;
+  format?: ImageTranscodePayload["options"]["format"];
+  fit?: ImageResizePayload["options"]["fit"];
+};
+
 export type Processor = (
-  file: Buffer,
-  opts?: {
-    width?: number;
-    height?: number;
-    format?: ImageTranscodePayload["options"]["format"];
-    fit?: ImageResizePayload["options"]["fit"];
-  },
-) => Promise<Buffer> | Promise<string>;
+  file: NodeJS.ReadableStream,
+  opts?: ProcessorOptions,
+) => NodeJS.ReadableStream | Promise<string> | string;
 
 // This is a placeholder
-async function process(file: Buffer): Promise<Buffer> {
-  return Buffer.from("Placeholder");
+function process(file: NodeJS.ReadableStream): string {
+  file.resume();
+  return "Placeholder";
 }
 
 export const processorRegistry = {

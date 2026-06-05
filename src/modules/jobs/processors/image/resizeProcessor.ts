@@ -1,21 +1,17 @@
 import sharp from "sharp";
-import type { ImageResizePayload } from "../../types.js";
+import type { ProcessorOptions } from "../processor.js";
 
-export async function resizeProcessor(
-  file: Buffer,
-  opts?: {
-    width?: number;
-    height?: number;
-    fit?: ImageResizePayload["options"]["fit"];
-  },
+export function resizeProcessor(
+  file: NodeJS.ReadableStream,
+  opts?: ProcessorOptions,
 ) {
-  return sharp(file)
-    .resize({
+  return file.pipe(
+    sharp().resize({
       width: opts?.width,
       height: opts?.height,
       fit: opts?.fit,
-    })
-    .toBuffer();
+    }),
+  );
 }
 
 export default resizeProcessor;
