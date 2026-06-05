@@ -9,6 +9,7 @@ export type WebhookJobPayload =
       webHookEndpointId: string;
       status: "COMPLETED";
       result: {
+        fileId?: string;
         width?: number;
         height?: number;
         mimeType?: string;
