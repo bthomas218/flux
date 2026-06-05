@@ -1,117 +1,21 @@
-import type { ImageResizePayload, ImageResultPayLoad } from "../../types.js";
-import { prisma } from "../../../../lib/prisma.js";
-import fs from "node:fs";
-import path from "node:path";
 import sharp from "sharp";
-import { generateToken } from "../../../../lib/crypto.js";
-import type { JobService } from "../../job.service.js";
-import {
-  resolveStoragePath,
-  ensureFileExists,
-} from "../../../files/filesService.js";
+import type { ImageResizePayload } from "../../types.js";
 
-const resizeProcessor = async (
-  data: ImageResizePayload,
-  jobId: string,
-  jobService: JobService,
-): Promise<ImageResultPayLoad> => {
-  await jobService.updateStatus(jobId, "IN_PROGRESS");
-
-  const file = await prisma.file.findUnique({
-    where: {
-      id: data.fileId,
-    },
-  });
-
-  if (!file) {
-    throw new Error("File not found");
-  }
-
-  const inputPath = resolveStoragePath(file.url);
-
-  await ensureFileExists(inputPath);
-
-  try {
-    const outputDir = path.join("outputs", file.userId, jobId);
-    const outputDirPath = resolveStoragePath(outputDir);
-    await fs.promises.mkdir(outputDirPath, { recursive: true });
-
-    const { info, outputPath } = await resizeImage(
-      inputPath,
-      outputDirPath,
-      file.filename,
-      file.filename.split(".").pop() || "jpg",
-      data.options.width,
-      data.options.height,
-      data.options.fit,
-    );
-    const outputUrl = path.join(outputDir, path.basename(outputPath));
-
-    const newFile = await prisma.file.create({
-      data: {
-        userId: file.userId,
-        filename: `${file.filename}-resized`,
-        storageKey: generateToken(), // Placeholder for storage key if using external storage
-        mimeType: file.mimeType,
-        url: outputUrl,
-        size: info.size,
-      },
-    });
-
-    await jobService.updateStatus(jobId, "COMPLETED", newFile.id);
-
-    return {
-      type: "image.resize",
-      output: {
-        fileId: newFile.id,
-        storageKey: newFile.storageKey,
-        mimeType: newFile.mimeType,
-        width: data.options.width || info.width || 0,
-        height: data.options.height || info.height || 0,
-      },
-    };
-  } catch (err) {
-    throw new Error(`Error processing image resize job: ${err}`);
-  }
-};
-
-async function resizeImage(
-  inputPath: string,
-  outputDir: string,
-  fileName: string,
-  extension: string,
-  width?: number,
-  height?: number,
-  fit?: "cover" | "contain" | "fill" | "inside" | "outside",
+export async function resizeProcessor(
+  file: Buffer,
+  opts?: {
+    width?: number;
+    height?: number;
+    fit?: ImageResizePayload["options"]["fit"];
+  },
 ) {
-  const image = sharp(inputPath).resize({
-    width,
-    height,
-    fit,
-  });
-  let info;
-  const outputPath = path.join(outputDir, `${fileName}-resized.${extension}`);
-  switch (extension.toLowerCase()) {
-    case "jpg":
-    case "jpeg":
-      info = await image.jpeg().toFile(outputPath);
-      break;
-    case "png":
-      info = await image.png().toFile(outputPath);
-      break;
-    case "webp":
-      info = await image.webp().toFile(outputPath);
-      break;
-    case "avif":
-      info = await image.avif().toFile(outputPath);
-      break;
-    default:
-      throw new Error("Unsupported file extension");
-  }
-
-  return { info, outputPath };
+  return sharp(file)
+    .resize({
+      width: opts?.width,
+      height: opts?.height,
+      fit: opts?.fit,
+    })
+    .toBuffer();
 }
-
-export { resizeProcessor };
 
 export default resizeProcessor;

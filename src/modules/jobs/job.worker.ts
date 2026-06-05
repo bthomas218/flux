@@ -1,14 +1,17 @@
 import { Worker } from "bullmq";
+import path from "node:path";
+import { Readable } from "node:stream";
+import sharp from "sharp";
 import { cfg } from "../../config/cfg.js";
 
 import type {
   ImageJobNames,
   ImageJobPayload,
   ImageResultPayLoad,
-  ImageAltTextPayload,
+  ImageTranscodePayload,
 } from "./types.js";
-import resizeProcessor from "./processors/image/resizeProcessor.js";
-import transcodeProcessor from "./processors/image/transcodeProcessor.js";
+import { processorRegistry } from "./processors/processor.js";
+import type { Processor } from "./processors/processor.js";
 import { createWebhookService } from "../webhooks/webhook.service.js";
 import { createWebhookQueue } from "../webhooks/webhook.queue.js";
 import { createPrismaClient } from "../../lib/prisma.js";
@@ -17,6 +20,7 @@ import { createRedis } from "../../lib/redis.js";
 import { createFileMetadataService } from "../files/file-metadata.service.js";
 import { FileStorageService } from "../files/file-storage.service.js";
 import { createJobQueue } from "./job.queue.js";
+import { generateToken } from "../../lib/crypto.js";
 
 const connection = createRedis(cfg.REDIS_URL);
 const prisma = createPrismaClient(cfg.DATABASE_URL);
@@ -40,17 +44,77 @@ const mediaWorker = new Worker<
 >(
   "media",
   async (job) => {
-    switch (job.data.type) {
-      // Mark in progress
-      case "image.resize":
-        return await resizeProcessor(job.data, job.id!, jobService);
-      case "image.transcode":
-        return await transcodeProcessor(job.data, job.id!, jobService);
-      case "image.alttext":
-        return await altTextProcessor(job.data);
-      default:
-        throw new Error(`Unknown job name: ${job.name}`);
+    if (!job.id) {
+      throw new Error("Job ID is required");
     }
+
+    await jobService.updateStatus(job.id, "IN_PROGRESS");
+
+    const processor: Processor = processorRegistry[job.data.type];
+    const sourceFile = await fileMetadataService.findOne(
+      job.data.fileId,
+      job.data.userId,
+    );
+    const sourceStream = await fileStorageService.read(sourceFile.url);
+    const sourceBuffer = await streamToBuffer(sourceStream);
+    const processed = await processor(sourceBuffer, job.data.options);
+
+    if (job.data.type === "image.alttext") {
+      const altText = Buffer.isBuffer(processed)
+        ? processed.toString("utf8")
+        : processed;
+
+      const result: ImageResultPayLoad = {
+        type: "image.alttext",
+        output: {
+          altText,
+        },
+      };
+
+      await jobService.updateStatus(job.id, "COMPLETED");
+      return result;
+    }
+
+    if (!Buffer.isBuffer(processed)) {
+      throw new Error(`Expected ${job.data.type} processor to return a buffer`);
+    }
+
+    const outputMimeType = getOutputMimeType(job.data, sourceFile.mimeType);
+    const outputFilename = getOutputFilename(
+      sourceFile.filename,
+      job.data.type,
+      outputMimeType,
+    );
+    const outputUrl = path.join(
+      "uploads",
+      `${job.data.userId}-${Date.now()}-${outputFilename}`,
+    );
+    const outputSize = await fileStorageService.write(
+      outputUrl,
+      Readable.from(processed),
+    );
+    const outputFile = await fileMetadataService.create({
+      userId: job.data.userId,
+      filename: outputFilename,
+      mimeType: outputMimeType,
+      url: outputUrl,
+      storageKey: generateToken(),
+      size: outputSize,
+    });
+    const metadata = await sharp(processed).metadata();
+
+    await jobService.updateStatus(job.id, "COMPLETED", outputFile.id);
+
+    return {
+      type: job.data.type,
+      output: {
+        fileId: outputFile.id,
+        storageKey: outputFile.storageKey,
+        mimeType: outputFile.mimeType,
+        width: metadata.width ?? 0,
+        height: metadata.height ?? 0,
+      },
+    };
   },
   { connection },
 );
@@ -101,16 +165,54 @@ mediaWorker.on("completed", async (job, result) => {
   );
 });
 
-// Implement the logic for image alt text job
-const altTextProcessor = async (
-  data: ImageAltTextPayload,
-): Promise<ImageResultPayLoad> => {
-  return {
-    type: "image.alttext",
-    output: {
-      altText: "Fake alt text",
-    },
-  };
+async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks);
+}
+
+function getOutputMimeType(
+  data: ImageJobPayload,
+  sourceMimeType: string,
+): string {
+  if (data.type === "image.transcode") {
+    return mimeTypesByFormat[data.options.format];
+  }
+
+  return sourceMimeType;
+}
+
+function getOutputFilename(
+  sourceFilename: string,
+  type: ImageJobNames,
+  mimeType: string,
+) {
+  const parsed = path.parse(sourceFilename);
+  const suffix = type === "image.resize" ? "resized" : "transcoded";
+  const extension = extensionsByMimeType[mimeType] ?? parsed.ext.slice(1);
+
+  return `${parsed.name}-${suffix}.${extension}`;
+}
+
+const mimeTypesByFormat: Record<
+  ImageTranscodePayload["options"]["format"],
+  string
+> = {
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  avif: "image/avif",
+};
+
+const extensionsByMimeType: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/avif": "avif",
 };
 
 process.on("SIGTERM", async () => {
