@@ -43,7 +43,8 @@ export const updateWebhookEndpointBodySchema = z.object({
   url: z.url(),
 });
 
-export const updateWebhookEndpointResponseSchema = webhookEndpointMetadataSchema;
+export const updateWebhookEndpointResponseSchema =
+  webhookEndpointMetadataSchema;
 
 export type CreateWebhookEndpointBody = z.infer<
   typeof createWebhookEndpointBodySchema

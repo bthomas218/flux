@@ -63,3 +63,7 @@ export class FileMetadataService {
     });
   }
 }
+
+export function createFileMetadataService(prisma: PrismaClient) {
+  return new FileMetadataService(prisma);
+}

@@ -13,7 +13,7 @@ import {
   updateWebhookEndpointBodySchema,
   updateWebhookEndpointParamsSchema,
   updateWebhookEndpointResponseSchema,
-} from "./webhookEndpointSchemas.js";
+} from "./webhook.schemas.js";
 
 function getAuthenticatedUser(user: unknown) {
   const jwtUser = user as Partial<JwtUser> | undefined;
@@ -80,7 +80,9 @@ export async function webhookRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const user = getAuthenticatedUser(request.user);
 
-      reply.send(await app.webhookService.findOne(request.params.id, user.userId));
+      reply.send(
+        await app.webhookService.findOne(request.params.id, user.userId),
+      );
     },
   );
 
@@ -121,7 +123,9 @@ export async function webhookRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const user = getAuthenticatedUser(request.user);
 
-      reply.send(await app.webhookService.delete(request.params.id, user.userId));
+      reply.send(
+        await app.webhookService.delete(request.params.id, user.userId),
+      );
     },
   );
 }

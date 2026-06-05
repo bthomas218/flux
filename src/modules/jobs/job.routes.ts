@@ -1,28 +1,20 @@
-import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import type { FastifyInstance } from "fastify";
-import apiKeyAuth from "../../plugins/apiKeyAuth.js";
+import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import {
-  createJobHandler,
-  getJobHandler,
-  listJobsHandler,
-} from "./jobsController.js";
-import {
-  createJobResponseSchema,
   createJobBodySchema,
+  createJobResponseSchema,
   getJobParamsSchema,
   getJobResponseSchema,
   listJobsResponseSchema,
-} from "./jobsSchemas.js";
+} from "./job.schemas.js";
 
-export function jobsRoutes(app: FastifyInstance) {
-  app.register(apiKeyAuth);
-
+export function jobRoutes(app: FastifyInstance) {
   app.addHook("preHandler", async (request, reply) => {
     await app.apiKeyAuth(request, reply);
   });
 
   app.withTypeProvider<ZodTypeProvider>().post(
-    "/jobs",
+    "/",
     {
       schema: {
         body: createJobBodySchema,
@@ -31,11 +23,16 @@ export function jobsRoutes(app: FastifyInstance) {
         },
       },
     },
-    createJobHandler,
+    async (request, reply) => {
+      const userId = request.apiKey!.userId;
+      const job = await app.jobService.create(userId, request.body);
+
+      reply.status(201).send(job);
+    },
   );
 
   app.withTypeProvider<ZodTypeProvider>().get(
-    "/jobs",
+    "/",
     {
       schema: {
         response: {
@@ -43,11 +40,15 @@ export function jobsRoutes(app: FastifyInstance) {
         },
       },
     },
-    listJobsHandler,
+    async (request, reply) => {
+      const userId = request.apiKey!.userId;
+
+      reply.send(await app.jobService.findMany(userId));
+    },
   );
 
   app.withTypeProvider<ZodTypeProvider>().get(
-    "/jobs/:id",
+    "/:id",
     {
       schema: {
         params: getJobParamsSchema,
@@ -56,6 +57,10 @@ export function jobsRoutes(app: FastifyInstance) {
         },
       },
     },
-    getJobHandler,
+    async (request, reply) => {
+      const userId = request.apiKey!.userId;
+
+      reply.send(await app.jobService.findOne(request.params.id, userId));
+    },
   );
 }

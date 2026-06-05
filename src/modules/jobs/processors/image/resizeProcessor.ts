@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { generateToken } from "../../../../lib/crypto.js";
-import { updateJobStatus } from "../../jobsService.js";
+import type { JobService } from "../../job.service.js";
 import {
   resolveStoragePath,
   ensureFileExists,
@@ -13,8 +13,9 @@ import {
 const resizeProcessor = async (
   data: ImageResizePayload,
   jobId: string,
+  jobService: JobService,
 ): Promise<ImageResultPayLoad> => {
-  await updateJobStatus(jobId, "IN_PROGRESS");
+  await jobService.updateStatus(jobId, "IN_PROGRESS");
 
   const file = await prisma.file.findUnique({
     where: {
@@ -57,7 +58,7 @@ const resizeProcessor = async (
       },
     });
 
-    await updateJobStatus(jobId, "COMPLETED", newFile.id);
+    await jobService.updateStatus(jobId, "COMPLETED", newFile.id);
 
     return {
       type: "image.resize",

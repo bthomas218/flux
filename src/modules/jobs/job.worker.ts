@@ -1,7 +1,6 @@
 import { Worker } from "bullmq";
 import { cfg } from "../../config/cfg.js";
 
-const connection = cfg.redis;
 import type {
   ImageJobNames,
   ImageJobPayload,
@@ -10,14 +9,29 @@ import type {
 } from "./types.js";
 import resizeProcessor from "./processors/image/resizeProcessor.js";
 import transcodeProcessor from "./processors/image/transcodeProcessor.js";
-import { updateJobStatus } from "./jobsService.js";
 import { createWebhookService } from "../webhooks/webhook.service.js";
 import { createWebhookQueue } from "../webhooks/webhook.queue.js";
 import { createPrismaClient } from "../../lib/prisma.js";
+import { createJobService } from "./job.service.js";
+import { createRedis } from "../../lib/redis.js";
+import { createFileMetadataService } from "../files/file-metadata.service.js";
+import { FileStorageService } from "../files/file-storage.service.js";
+import { createJobQueue } from "./job.queue.js";
+
+const connection = createRedis(cfg.REDIS_URL);
+const prisma = createPrismaClient(cfg.DATABASE_URL);
 
 const webhookQueue = createWebhookQueue(connection);
-const webhookPrisma = createPrismaClient(cfg.DATABASE_URL);
-const webhookService = createWebhookService(webhookPrisma, webhookQueue, cfg);
+const webhookService = createWebhookService(prisma, webhookQueue, cfg);
+const fileMetadataService = createFileMetadataService(prisma);
+const fileStorageService = new FileStorageService();
+const jobQueue = createJobQueue(connection);
+const jobService = createJobService(
+  prisma,
+  fileMetadataService,
+  fileStorageService,
+  jobQueue,
+);
 
 const mediaWorker = new Worker<
   ImageJobPayload,
@@ -27,10 +41,11 @@ const mediaWorker = new Worker<
   "media",
   async (job) => {
     switch (job.data.type) {
+      // Mark in progress
       case "image.resize":
-        return await resizeProcessor(job.data, job.id!);
+        return await resizeProcessor(job.data, job.id!, jobService);
       case "image.transcode":
-        return await transcodeProcessor(job.data, job.id!);
+        return await transcodeProcessor(job.data, job.id!, jobService);
       case "image.alttext":
         return await altTextProcessor(job.data);
       default:
@@ -55,7 +70,7 @@ mediaWorker.on("failed", async (job, err) => {
     return;
   }
 
-  await updateJobStatus(job.id, "FAILED");
+  await jobService.updateStatus(job.id, "FAILED");
   await webhookService.sendWebhookNotification(
     job.id,
     job.data.userId,
@@ -97,3 +112,11 @@ const altTextProcessor = async (
     },
   };
 };
+
+process.on("SIGTERM", async () => {
+  await jobQueue.close();
+  await webhookQueue.close();
+  await connection.quit();
+  await prisma.$disconnect();
+  process.exit(0);
+});

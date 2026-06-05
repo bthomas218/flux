@@ -3,11 +3,11 @@ import path from "node:path";
 import sharp from "sharp";
 import { generateToken } from "../../../../lib/crypto.js";
 import { prisma } from "../../../../lib/prisma.js";
+import type { JobService } from "../../job.service.js";
 import type {
   ImageResultPayLoad,
   ImageTranscodePayload,
 } from "../../../../modules/jobs/types.js";
-import { updateJobStatus } from "../../jobsService.js";
 import {
   resolveStoragePath,
   ensureFileExists,
@@ -23,8 +23,9 @@ const mimeTypes: Record<ImageTranscodePayload["options"]["format"], string> = {
 const transcodeProcessor = async (
   data: ImageTranscodePayload,
   jobId: string,
+  jobService: JobService,
 ): Promise<ImageResultPayLoad> => {
-  await updateJobStatus(jobId, "IN_PROGRESS");
+  await jobService.updateStatus(jobId, "IN_PROGRESS");
 
   const file = await prisma.file.findUnique({
     where: {
@@ -65,7 +66,7 @@ const transcodeProcessor = async (
       },
     });
 
-    await updateJobStatus(jobId, "COMPLETED", newFile.id);
+    await jobService.updateStatus(jobId, "COMPLETED", newFile.id);
 
     return {
       type: "image.transcode",
