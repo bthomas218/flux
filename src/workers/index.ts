@@ -1,4 +1,4 @@
 import "../modules/jobs/jobWorker.js";
-import "../modules/webhookEndpoints/webhookWorker.js";
+import "../modules/webhooks/webhook.worker.js";
 
 console.log("Workers started");

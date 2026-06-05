@@ -10,8 +10,14 @@ import type {
 } from "./types.js";
 import resizeProcessor from "./processors/image/resizeProcessor.js";
 import transcodeProcessor from "./processors/image/transcodeProcessor.js";
-import { sendWebhookNotification } from "../webhookEndpoints/webhookEndpointService.js";
 import { updateJobStatus } from "./jobsService.js";
+import { createWebhookService } from "../webhooks/webhook.service.js";
+import { createWebhookQueue } from "../webhooks/webhook.queue.js";
+import { createPrismaClient } from "../../lib/prisma.js";
+
+const webhookQueue = createWebhookQueue(connection);
+const webhookPrisma = createPrismaClient(cfg.DATABASE_URL);
+const webhookService = createWebhookService(webhookPrisma, webhookQueue, cfg);
 
 const mediaWorker = new Worker<
   ImageJobPayload,
@@ -50,7 +56,7 @@ mediaWorker.on("failed", async (job, err) => {
   }
 
   await updateJobStatus(job.id, "FAILED");
-  await sendWebhookNotification(
+  await webhookService.sendWebhookNotification(
     job.id,
     job.data.userId,
     "FAILED",
@@ -68,7 +74,7 @@ mediaWorker.on("completed", async (job, result) => {
   }
 
   console.log(`Media job ${job.id} completed`);
-  await sendWebhookNotification(
+  await webhookService.sendWebhookNotification(
     job.id,
     job.data.userId,
     "COMPLETED",

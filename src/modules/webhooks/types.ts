@@ -1,19 +1,18 @@
-import type { ImageJobNames, ImageResultPayLoad } from "../jobs/types.js";
 export type WebhookJobNames = "job.completed" | "job.failed";
 
 export type WebhookJobPayload =
   | {
       event: "job.completed";
-      type: ImageJobNames;
+      type: string;
       jobId: string;
       userId: string;
       webHookEndpointId: string;
       status: "COMPLETED";
-      result: ImageResultPayLoad;
+      result: any;
     }
   | {
       event: "job.failed";
-      type: ImageJobNames;
+      type: string;
       userId: string;
       jobId: string;
       webHookEndpointId: string;

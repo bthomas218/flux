@@ -1,7 +1,6 @@
 import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./config/cfg.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
-import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
 import configPlugin from "./plugins/config.js";
 import prismaPlugin from "./plugins/prisma.js";
 import redisPlugin from "./plugins/redis.js";
@@ -13,6 +12,7 @@ import {
 import authPlugin from "./modules/auth/auth.plugin.js";
 import apiKeyPlugin from "./modules/api-keys/api-key.plugin.js";
 import filePlugin from "./modules/files/file.plugin.js";
+import webhookPlugin from "./modules/webhooks/webhook.plugin.js";
 import fastifyJwt from "@fastify/jwt";
 
 const app = Fastify({
@@ -80,7 +80,7 @@ app.register(authPlugin);
 app.register(apiKeyPlugin);
 app.register(jobsRoutes);
 app.register(filePlugin);
-app.register(webhookEndpointRoutes);
+app.register(webhookPlugin);
 
 async function main() {
   try {
