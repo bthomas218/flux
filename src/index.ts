@@ -1,6 +1,5 @@
 import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./config/cfg.js";
-import { apiKeyRoutes } from "./modules/apiKeys/apiKeyRoutes.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
 import { filesRoutes } from "./modules/files/filesRouter.js";
 import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
@@ -13,6 +12,7 @@ import {
 } from "fastify-type-provider-zod";
 import { prisma } from "./lib/prisma.js";
 import authPlugin from "./modules/auth/auth.plugin.js";
+import apiKeyPlugin from "./modules/api-keys/api-key.plugin.js";
 import fastifyJwt from "@fastify/jwt";
 
 const app = Fastify({
@@ -76,7 +76,7 @@ app.register(fastifyJwt, {
 });
 app.register(prismaPlugin);
 app.register(authPlugin);
-app.register(apiKeyRoutes);
+app.register(apiKeyPlugin);
 app.register(jobsRoutes);
 app.register(filesRoutes);
 app.register(webhookEndpointRoutes);

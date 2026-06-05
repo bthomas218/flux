@@ -5,7 +5,7 @@ import {
   magicLinkResponseSchema,
   callbackQuerySchema,
   callbackResponseSchema,
-} from "./authSchemas.js";
+} from "./auth.schemas.js";
 export async function authRoutes(app: FastifyInstance) {
   app.withTypeProvider<ZodTypeProvider>().post(
     "/magic-link",
