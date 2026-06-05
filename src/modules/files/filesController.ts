@@ -13,7 +13,7 @@ import type {
   GetFileParams,
   ListFilesReply,
   DeleteFileReply,
-} from "./filesSchemas.js";
+} from "./file.schemas.js";
 
 export const uploadFileHandler = async (
   request: FastifyRequest,

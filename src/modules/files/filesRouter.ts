@@ -13,7 +13,7 @@ import {
   getFileParamsSchema,
   getFileResponseSchema,
   listFilesResponseSchema,
-} from "./filesSchemas.js";
+} from "./file.schemas.js";
 
 export function filesRoutes(app: FastifyInstance) {
   app.register(import("@fastify/multipart"));

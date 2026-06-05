@@ -1,18 +1,18 @@
 import Fastify, { type FastifyError } from "fastify";
 import { cfg } from "./config/cfg.js";
 import { jobsRoutes } from "./modules/jobs/jobsRouter.js";
-import { filesRoutes } from "./modules/files/filesRouter.js";
 import { webhookEndpointRoutes } from "./modules/webhookEndpoints/webhookEndpointRoutes.js";
 import configPlugin from "./plugins/config.js";
 import prismaPlugin from "./plugins/prisma.js";
+import redisPlugin from "./plugins/redis.js";
 import {
   serializerCompiler,
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { prisma } from "./lib/prisma.js";
 import authPlugin from "./modules/auth/auth.plugin.js";
 import apiKeyPlugin from "./modules/api-keys/api-key.plugin.js";
+import filePlugin from "./modules/files/file.plugin.js";
 import fastifyJwt from "@fastify/jwt";
 
 const app = Fastify({
@@ -62,8 +62,8 @@ app.setErrorHandler(async (error: FastifyError, request, reply) => {
   });
 });
 
-app.get("/health", async (request, reply) => {
-  const pgConnectionCheck = await prisma.$queryRaw`SELECT CURRENT_TIME;`;
+app.get("/health", async (req, res) => {
+  const pgConnectionCheck = await app.prisma.$queryRaw`SELECT CURRENT_TIME;`;
   return {
     status: "OK",
     pgConnectionCheck,
@@ -75,15 +75,16 @@ app.register(fastifyJwt, {
   secret: app.cfg.JWT_SECRET,
 });
 app.register(prismaPlugin);
+app.register(redisPlugin);
 app.register(authPlugin);
 app.register(apiKeyPlugin);
 app.register(jobsRoutes);
-app.register(filesRoutes);
+app.register(filePlugin);
 app.register(webhookEndpointRoutes);
 
 async function main() {
   try {
-    await app.listen({ port: cfg.PORT, host: cfg.HOSTNAME });
+    await app.listen({ port: app.cfg.PORT, host: app.cfg.HOSTNAME });
   } catch (err) {
     app.log.error(err);
     process.exit(1);
