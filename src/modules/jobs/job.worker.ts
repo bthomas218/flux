@@ -139,7 +139,6 @@ mediaWorker.on("failed", async (job, err) => {
     job.id,
     job.data.userId,
     "FAILED",
-    job.data.fileId,
     job.data.webHookEndpointId,
     job.data.type,
     undefined,
@@ -157,10 +156,9 @@ mediaWorker.on("completed", async (job, result) => {
     job.id,
     job.data.userId,
     "COMPLETED",
-    job.data.fileId,
     job.data.webHookEndpointId,
     job.data.type,
-    result,
+    result.output,
     undefined,
   );
 });

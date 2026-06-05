@@ -4,7 +4,6 @@ import type { Cfg } from "../../config/cfg.js";
 import { NotFoundError } from "../../errors.js";
 import type { PrismaClient } from "../../lib/generated/prisma/client.js";
 import { decrypt, encrypt, generateSecretKey } from "../../lib/crypto.js";
-import type { ImageJobNames, ImageResultPayLoad } from "../jobs/types.js";
 import type { WebhookJobNames, WebhookJobPayload } from "./types.js";
 import { MAX_WEBHOOK_JOB_RETRY_ATTEMPTS } from "./webhook.queue.js";
 
@@ -118,10 +117,15 @@ export class WebhookService {
     jobId: string,
     userId: string,
     status: "COMPLETED" | "FAILED",
-    inputFileId: string,
     webhookEndpointId: string,
-    jobType: ImageJobNames,
-    result?: ImageResultPayLoad,
+    jobType: string,
+    result?: {
+      fileId?: string;
+      width?: number;
+      height?: number;
+      mimeType?: string;
+      altText?: string;
+    },
     errorMessage?: string,
   ) {
     const payload =
@@ -172,7 +176,9 @@ export class WebhookService {
     });
 
     if (!webhookEndpoint) {
-      console.log(`Webhook endpoint not found for id ${payload.webHookEndpointId}`);
+      console.log(
+        `Webhook endpoint not found for id ${payload.webHookEndpointId}`,
+      );
       throw new Error("Webhook endpoint not found");
     }
 

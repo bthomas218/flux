@@ -8,7 +8,12 @@ export type WebhookJobPayload =
       userId: string;
       webHookEndpointId: string;
       status: "COMPLETED";
-      result: any;
+      result: {
+        width?: number;
+        height?: number;
+        mimeType?: string;
+        altText?: string;
+      };
     }
   | {
       event: "job.failed";
