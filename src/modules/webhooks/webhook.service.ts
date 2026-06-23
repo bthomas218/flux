@@ -5,7 +5,6 @@ import { NotFoundError } from "../../errors.js";
 import type { PrismaClient } from "../../lib/generated/prisma/client.js";
 import { decrypt, encrypt, generateSecretKey } from "../../lib/crypto.js";
 import type { WebhookJobNames, WebhookJobPayload } from "./types.js";
-import { MAX_WEBHOOK_JOB_RETRY_ATTEMPTS } from "./webhook.queue.js";
 
 export class WebhookService {
   constructor(
@@ -154,13 +153,6 @@ export class WebhookService {
     await this.webHookQueue.add(
       status === "COMPLETED" ? "job.completed" : "job.failed",
       payload as WebhookJobPayload,
-      {
-        attempts: MAX_WEBHOOK_JOB_RETRY_ATTEMPTS,
-        backoff: {
-          type: "exponential",
-          delay: 2000,
-        },
-      },
     );
   }
 

@@ -1,0 +1,3 @@
+export const MAX_JOB_RETRY_ATTEMPTS = 3;
+export const MAX_WEBHOOK_JOB_RETRY_ATTEMPTS = 5;
+export const QUEUE_RETRY_DELAY = 2000;

@@ -5,12 +5,23 @@ import type {
   ImageJobPayload,
   ImageResultPayLoad,
 } from "./types.js";
-
-export const MAX_JOB_RETRY_ATTEMPTS = 3;
+import {
+  MAX_JOB_RETRY_ATTEMPTS,
+  QUEUE_RETRY_DELAY,
+} from "../../lib/constants.js";
 
 export function createJobQueue(connection: Redis) {
   return new Queue<ImageJobPayload, ImageResultPayLoad, ImageJobNames>(
     "media",
-    { connection },
+    {
+      defaultJobOptions: {
+        attempts: MAX_JOB_RETRY_ATTEMPTS,
+        backoff: {
+          type: "exponential",
+          delay: QUEUE_RETRY_DELAY,
+        },
+      },
+      connection,
+    },
   );
 }

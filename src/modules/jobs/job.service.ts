@@ -18,7 +18,6 @@ import type {
   ImageJobPayload,
   ImageResultPayLoad,
 } from "./types.js";
-import { MAX_JOB_RETRY_ATTEMPTS } from "./job.queue.js";
 
 export type JobRecord = {
   id: string;
@@ -181,11 +180,6 @@ export class JobService {
   async enqueueJob(id: string, payload: ImageJobPayload) {
     await this.jobQueue.add(payload.type, payload, {
       jobId: id,
-      attempts: MAX_JOB_RETRY_ATTEMPTS,
-      backoff: {
-        type: "exponential",
-        delay: 2000,
-      },
     });
   }
 
